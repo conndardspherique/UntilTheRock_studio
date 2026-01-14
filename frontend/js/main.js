@@ -1,6 +1,8 @@
 // Router simple pour SPA
 const routes = {
   '/': homePage,
+  '/portfolio': portfolioPage,
+  '/admin-portfolio': adminPortfolioPage,
   '/reservation-materiel': reservationMaterielPage,
   '/reservation-studio': reservationStudioPage,
   '/mastering': masteringPage,
@@ -353,6 +355,382 @@ function contactPage() {
   `;
 }
 
+// Ajouter cette fonction dans main.js
+
+function adminPortfolioPage() {
+  const token = localStorage.getItem('admin_token');
+  if (!token) {
+    navigateTo('/admin-login');
+    return '';
+  }
+
+  setTimeout(() => {
+    loadAdminPortfolio();
+    document.getElementById('portfolio-add-form')?.addEventListener('submit', handleAddPortfolio);
+  }, 0);
+
+  return `
+    <section class="section" style="padding-top: 120px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2 class="section-title" style="margin: 0;">Gestion Portfolio</h2>
+        <button class="btn btn-outline" onclick="navigateTo('/admin-dashboard')">← Retour Dashboard</button>
+      </div>
+
+      <!-- Formulaire d'ajout -->
+      <div class="form-container" style="margin-bottom: 3rem;">
+        <h3 style="color: var(--primary); margin-bottom: 1.5rem;">Ajouter un Élément</h3>
+        <form id="portfolio-add-form">
+          <div class="form-group">
+            <label>Type de service *</label>
+            <select name="service_type" required>
+              <option value="mastering">Mastering</option>
+              <option value="recording">Enregistrement</option>
+              <option value="studio">Studio</option>
+              <option value="equipment">Matériel</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Titre *</label>
+            <input type="text" name="title" required placeholder="Ex: Projet Rock 2025">
+          </div>
+
+          <div class="form-group">
+            <label>Description</label>
+            <textarea name="description" placeholder="Décrivez le projet..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>URL de l'image</label>
+            <input type="url" name="image_url" placeholder="/assets/uploads/images/projet1.jpg">
+            <small style="color: var(--gray); display: block; margin-top: 0.5rem;">
+              📁 Placez vos images dans: frontend/assets/uploads/images/
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>URL de l'audio</label>
+            <input type="url" name="audio_url" placeholder="/assets/uploads/audio/extrait.mp3">
+            <small style="color: var(--gray); display: block; margin-top: 0.5rem;">
+              🎵 Placez vos fichiers audio dans: frontend/assets/uploads/audio/<br>
+              Formats supportés: MP3, WAV, OGG
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>URL de la vidéo</label>
+            <input type="url" name="video_url" placeholder="/assets/uploads/videos/making-of.mp4">
+            <small style="color: var(--gray); display: block; margin-top: 0.5rem;">
+              🎬 Placez vos vidéos dans: frontend/assets/uploads/videos/<br>
+              Formats supportés: MP4, WEBM, OGG
+            </small>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%;">
+            ➕ Ajouter au Portfolio
+          </button>
+        </form>
+      </div>
+
+      <!-- Liste des éléments existants -->
+      <div class="form-container" style="max-width: 100%;">
+        <h3 style="color: var(--primary); margin-bottom: 1.5rem;">Éléments Existants</h3>
+        <div id="admin-portfolio-list">
+          <p style="text-align: center; color: var(--gray);">Chargement...</p>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+// Charger le portfolio pour l'admin
+async function loadAdminPortfolio() {
+  try {
+    const items = await api.getPortfolio();
+    renderAdminPortfolio(items);
+  } catch (error) {
+    document.getElementById('admin-portfolio-list').innerHTML = 
+      '<p style="color: var(--primary);">Erreur de chargement</p>';
+  }
+}
+
+// Afficher le portfolio dans l'admin
+function renderAdminPortfolio(items) {
+  const list = document.getElementById('admin-portfolio-list');
+  
+  if (items.length === 0) {
+    list.innerHTML = '<p style="text-align: center; color: var(--gray);">Aucun élément</p>';
+    return;
+  }
+
+  list.innerHTML = `
+    <div style="display: grid; gap: 1.5rem;">
+      ${items.map(item => `
+        <div class="service-card" style="display: grid; grid-template-columns: 150px 1fr auto; gap: 1.5rem; align-items: start;">
+          <!-- Miniature -->
+          <div>
+            ${item.image_url ? `
+              <img 
+                src="${item.image_url}" 
+                alt="${item.title}"
+                style="width: 100%; height: 100px; object-fit: cover; border-radius: 10px;"
+              />
+            ` : `
+              <div style="width: 100%; height: 100px; background: var(--dark); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--gray);">
+                Pas d'image
+              </div>
+            `}
+            ${item.audio_url ? '<div style="margin-top: 0.5rem; color: var(--success);">🎵 Audio</div>' : ''}
+            ${item.video_url ? '<div style="margin-top: 0.5rem; color: var(--success);">🎬 Vidéo</div>' : ''}
+          </div>
+
+          <!-- Informations -->
+          <div>
+            <h4 style="color: var(--primary); margin-bottom: 0.5rem;">${item.title}</h4>
+            <span style="display: inline-block; padding: 0.25rem 0.75rem; background: var(--secondary); border-radius: 20px; font-size: 0.85rem; margin-bottom: 0.5rem;">
+              ${item.service_type}
+            </span>
+            <p style="color: var(--gray); font-size: 0.9rem; margin-top: 0.5rem;">
+              ${item.description || 'Pas de description'}
+            </p>
+            <p style="color: var(--gray); font-size: 0.85rem; margin-top: 0.5rem;">
+              Ajouté le ${new Date(item.created_at).toLocaleDateString('fr-FR')}
+            </p>
+          </div>
+
+          <!-- Actions -->
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <button 
+              class="btn btn-outline" 
+              onclick="editPortfolioItem(${item.id})"
+              style="padding: 0.5rem 1rem; font-size: 0.9rem;"
+            >
+              ✏️ Modifier
+            </button>
+            <button 
+              class="btn btn-outline" 
+              onclick="deletePortfolioItem(${item.id})"
+              style="padding: 0.5rem 1rem; font-size: 0.9rem; border-color: var(--primary); color: var(--primary);"
+            >
+              🗑️ Supprimer
+            </button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// Ajouter un élément au portfolio
+async function handleAddPortfolio(e) {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const data = Object.fromEntries(formData);
+  
+  try {
+    await api.addPortfolioItem(data);
+    alert('✅ Élément ajouté au portfolio !');
+    e.target.reset();
+    loadAdminPortfolio(); // Recharger la liste
+  } catch (error) {
+    alert('❌ Erreur lors de l\'ajout. Vérifiez que vous êtes bien connecté.');
+  }
+}
+
+// Supprimer un élément
+async function deletePortfolioItem(id) {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer cet élément ?')) {
+    return;
+  }
+  
+  try {
+    await api.deletePortfolioItem(id);
+    alert('✅ Élément supprimé !');
+    loadAdminPortfolio();
+  } catch (error) {
+    alert('❌ Erreur lors de la suppression.');
+  }
+}
+
+// Modifier un élément (à implémenter)
+function editPortfolioItem(id) {
+  alert('Fonction de modification à venir. Pour l\'instant, supprimez et recréez l\'élément.');
+}
+
+function portfolioPage() {
+  // Charger les éléments du portfolio au chargement
+  setTimeout(loadPortfolioItems, 0);
+
+  return `
+    <section class="section" style="padding-top: 120px;">
+      <h2 class="section-title">Notre Portfolio</h2>
+      
+      <!-- Filtres -->
+      <div style="text-align: center; margin-bottom: 3rem;">
+        <button class="btn btn-outline" onclick="filterPortfolio('all')" style="margin: 0.5rem;">Tout</button>
+        <button class="btn btn-outline" onclick="filterPortfolio('mastering')" style="margin: 0.5rem;">Mastering</button>
+        <button class="btn btn-outline" onclick="filterPortfolio('recording')" style="margin: 0.5rem;">Enregistrement</button>
+        <button class="btn btn-outline" onclick="filterPortfolio('studio')" style="margin: 0.5rem;">Studio</button>
+      </div>
+
+      <!-- Grille Portfolio -->
+      <div id="portfolio-grid" class="services-grid">
+        <p style="text-align: center; color: var(--gray);">Chargement...</p>
+      </div>
+
+      <!-- Modal pour voir en grand -->
+      <div id="media-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+          <span class="modal-close" onclick="closeModal()">&times;</span>
+          <div id="modal-body"></div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+// Charger les éléments du portfolio
+async function loadPortfolioItems(filter = 'all') {
+  try {
+    const items = await api.getPortfolio(filter === 'all' ? null : filter);
+    renderPortfolio(items);
+  } catch (error) {
+    document.getElementById('portfolio-grid').innerHTML = 
+      '<p style="color: var(--primary);">Erreur de chargement</p>';
+  }
+}
+
+// Afficher le portfolio
+function renderPortfolio(items) {
+  const grid = document.getElementById('portfolio-grid');
+  
+  if (items.length === 0) {
+    grid.innerHTML = '<p style="text-align: center; color: var(--gray);">Aucun élément pour le moment</p>';
+    return;
+  }
+
+  grid.innerHTML = items.map(item => `
+    <div class="service-card portfolio-item" data-type="${item.service_type}">
+      <!-- Image -->
+      ${item.image_url ? `
+        <img 
+          src="${item.image_url}" 
+          alt="${item.title}"
+          style="width: 100%; height: 200px; object-fit: cover; border-radius: 10px; margin-bottom: 1rem; cursor: pointer;"
+          onclick="openImageModal('${item.image_url}', '${item.title}')"
+        />
+      ` : '<div style="width: 100%; height: 200px; background: var(--dark); border-radius: 10px; margin-bottom: 1rem;"></div>'}
+
+      <!-- Titre -->
+      <h3 style="color: var(--primary); margin-bottom: 0.5rem;">${item.title}</h3>
+      
+      <!-- Badge du type -->
+      <span style="display: inline-block; padding: 0.25rem 0.75rem; background: var(--secondary); border-radius: 20px; font-size: 0.85rem; margin-bottom: 1rem;">
+        ${item.service_type}
+      </span>
+
+      <!-- Description -->
+      <p style="color: var(--gray); margin-bottom: 1rem;">${item.description || ''}</p>
+
+      <!-- Player Audio -->
+      ${item.audio_url ? `
+        <audio controls style="width: 100%; margin-top: 1rem;" preload="metadata">
+          <source src="${item.audio_url}" type="audio/mpeg">
+          <source src="${item.audio_url}" type="audio/wav">
+          <source src="${item.audio_url}" type="audio/ogg">
+          Votre navigateur ne supporte pas l'audio.
+        </audio>
+      ` : ''}
+
+      <!-- Bouton Voir Plus -->
+      ${item.video_url ? `
+        <button 
+          class="btn btn-primary" 
+          style="width: 100%; margin-top: 1rem;"
+          onclick="openVideoModal('${item.video_url}', '${item.title}')"
+        >
+          🎥 Voir la Vidéo
+        </button>
+      ` : ''}
+    </div>
+  `).join('');
+}
+
+// Filtrer le portfolio
+function filterPortfolio(type) {
+  loadPortfolioItems(type);
+  
+  // Mettre à jour les boutons actifs
+  document.querySelectorAll('.btn-outline').forEach(btn => {
+    btn.style.background = 'transparent';
+    btn.style.color = 'var(--primary)';
+  });
+  event.target.style.background = 'var(--primary)';
+  event.target.style.color = 'var(--light)';
+}
+
+// Ouvrir l'image en grand
+function openImageModal(imageUrl, title) {
+  const modal = document.getElementById('media-modal');
+  const modalBody = document.getElementById('modal-body');
+  
+  modalBody.innerHTML = `
+    <h2 style="color: var(--primary); margin-bottom: 1rem;">${title}</h2>
+    <img 
+      src="${imageUrl}" 
+      alt="${title}"
+      style="width: 100%; max-height: 80vh; object-fit: contain; border-radius: 10px;"
+    />
+  `;
+  
+  modal.style.display = 'flex';
+}
+
+// Ouvrir la vidéo en modal
+function openVideoModal(videoUrl, title) {
+  const modal = document.getElementById('media-modal');
+  const modalBody = document.getElementById('modal-body');
+  
+  modalBody.innerHTML = `
+    <h2 style="color: var(--primary); margin-bottom: 1rem;">${title}</h2>
+    <video 
+      controls 
+      autoplay
+      style="width: 100%; max-height: 80vh; border-radius: 10px;"
+    >
+      <source src="${videoUrl}" type="video/mp4">
+      <source src="${videoUrl}" type="video/webm">
+      <source src="${videoUrl}" type="video/ogg">
+      Votre navigateur ne supporte pas la vidéo.
+    </video>
+  `;
+  
+  modal.style.display = 'flex';
+}
+
+// Fermer le modal
+function closeModal() {
+  const modal = document.getElementById('media-modal');
+  const modalBody = document.getElementById('modal-body');
+  
+  // Arrêter la vidéo si elle joue
+  const video = modalBody.querySelector('video');
+  if (video) {
+    video.pause();
+  }
+  
+  modal.style.display = 'none';
+  modalBody.innerHTML = '';
+}
+
+// Fermer en cliquant en dehors
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('media-modal');
+  if (e.target === modal) {
+    closeModal();
+  }
+});
+
 // Handlers de formulaires
 async function handleEquipmentBooking(e) {
   e.preventDefault();
@@ -555,6 +933,9 @@ function adminDashboardPage() {
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h2 class="section-title" style="margin: 0;">Dashboard Admin</h2>
         <button class="btn btn-outline" onclick="handleLogout()">Déconnexion</button>
+        <button class="btn btn-primary" onclick="navigateTo('/admin-portfolio')">
+          Gérer le Portfolio
+        </button>
       </div>
       <div id="admin-content">
         <p style="text-align: center; color: var(--gray);">Chargement...</p>
