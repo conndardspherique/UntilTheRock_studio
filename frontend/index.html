@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UntilTheRock Studio - Studio d'Enregistrement Professionnel</title>
+    <meta name="description" content="Studio d'enregistrement, mastering, location de matériel - UntilTheRock">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo" onclick="navigateTo('/')">UntilTheRock</div>
+            <ul class="nav-links">
+                <li><a href="/" onclick="navigateTo('/'); return false;" class="active">Accueil</a></li>
+                <li><a href="/reservation-materiel" onclick="navigateTo('/reservation-materiel'); return false;">Matériel</a></li>
+                <li><a href="/reservation-studio" onclick="navigateTo('/reservation-studio'); return false;">Studio</a></li>
+                <li><a href="/mastering" onclick="navigateTo('/mastering'); return false;">Mastering</a></li>
+                <li><a href="/enregistrement" onclick="navigateTo('/enregistrement'); return false;">Enregistrement</a></li>
+                <li><a href="/contact" onclick="navigateTo('/contact'); return false;">Contact</a></li>
+            </ul>
+            <div class="burger" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <div id="app"></div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="/mentions-legales" onclick="navigateTo('/mentions-legales'); return false;">Mentions Légales</a>
+                <a href="/politique-confidentialite" onclick="navigateTo('/politique-confidentialite'); return false;">Politique de Confidentialité</a>
+                <a href="/cgv" onclick="navigateTo('/cgv'); return false;">CGV</a>
+                <a href="/admin-login" onclick="navigateTo('/admin-login'); return false;">Admin</a>
+            </div>
+            <p style="color: #9ca3af; margin-top: 1rem;">© 2026 UntilTheRock Studio. Tous droits réservés.</p>
+        </div>
+    </footer>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/main.js"></script>
+</body>
+</html>

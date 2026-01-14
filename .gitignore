@@ -1,0 +1,35 @@
+# Dépendances
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# Base de données
+*.db
+*.sqlite
+*.sqlite3
+
+# Environnement
+.env
+.env.local
+.env.production
+
+# Logs
+logs/
+*.log
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build
+dist/
+build/
+
+# Fichiers temporaires
+*.tmp
+*.temp
+*.bak
+*.swp
