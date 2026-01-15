@@ -12,9 +12,26 @@ const migrations = [
       // Déjà créé dans database.js
       console.log("✅ Migration v1 - Tables initiales (déjà créées)");
     }
-  }
+  },
   // Ajoutez vos futures migrations ici
+ {
+    version: 2,
+    description: "Ajout colonne video_url au portfolio",
+    up: () => {
+      return new Promise((resolve, reject) => {
+        db.run(`ALTER TABLE portfolio ADD COLUMN video_url TEXT`, (err) => {
+          if (err && !err.message.includes('duplicate column')) {
+            console.log('⚠️  Colonne video_url existe déjà ou erreur:', err.message);
+          } else {
+            console.log("✅ Migration v2 - Colonne video_url ajoutée");
+          }
+          resolve();
+        });
+      });
+    }
+  }
 ];
+
 
 // Table pour tracker les migrations appliquées
 const createMigrationTable = () => {

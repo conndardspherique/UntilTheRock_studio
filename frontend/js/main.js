@@ -1,8 +1,6 @@
 // Router simple pour SPA
 const routes = {
   '/': homePage,
-  '/portfolio': portfolioPage,
-  '/admin-portfolio': adminPortfolioPage,
   '/reservation-materiel': reservationMaterielPage,
   '/reservation-studio': reservationStudioPage,
   '/mastering': masteringPage,
@@ -10,6 +8,7 @@ const routes = {
   '/contact': contactPage,
   '/admin-login': adminLoginPage,
   '/admin-dashboard': adminDashboardPage,
+  '/admin-portfolio': adminPortfolioPage,
   '/mentions-legales': mentionsLegalesPage,
   '/politique-confidentialite': politiqueConfidentialitePage,
   '/cgv': cgvPage
@@ -355,381 +354,7 @@ function contactPage() {
   `;
 }
 
-// Ajouter cette fonction dans main.js
 
-function adminPortfolioPage() {
-  const token = localStorage.getItem('admin_token');
-  if (!token) {
-    navigateTo('/admin-login');
-    return '';
-  }
-
-  setTimeout(() => {
-    loadAdminPortfolio();
-    document.getElementById('portfolio-add-form')?.addEventListener('submit', handleAddPortfolio);
-  }, 0);
-
-  return `
-    <section class="section" style="padding-top: 120px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h2 class="section-title" style="margin: 0;">Gestion Portfolio</h2>
-        <button class="btn btn-outline" onclick="navigateTo('/admin-dashboard')">← Retour Dashboard</button>
-      </div>
-
-      <!-- Formulaire d'ajout -->
-      <div class="form-container" style="margin-bottom: 3rem;">
-        <h3 style="color: var(--primary); margin-bottom: 1.5rem;">Ajouter un Élément</h3>
-        <form id="portfolio-add-form">
-          <div class="form-group">
-            <label>Type de service *</label>
-            <select name="service_type" required>
-              <option value="mastering">Mastering</option>
-              <option value="recording">Enregistrement</option>
-              <option value="studio">Studio</option>
-              <option value="equipment">Matériel</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Titre *</label>
-            <input type="text" name="title" required placeholder="Ex: Projet Rock 2025">
-          </div>
-
-          <div class="form-group">
-            <label>Description</label>
-            <textarea name="description" placeholder="Décrivez le projet..."></textarea>
-          </div>
-
-          <div class="form-group">
-            <label>URL de l'image</label>
-            <input type="url" name="image_url" placeholder="/assets/uploads/images/projet1.jpg">
-            <small style="color: var(--gray); display: block; margin-top: 0.5rem;">
-              📁 Placez vos images dans: frontend/assets/uploads/images/
-            </small>
-          </div>
-
-          <div class="form-group">
-            <label>URL de l'audio</label>
-            <input type="url" name="audio_url" placeholder="/assets/uploads/audio/extrait.mp3">
-            <small style="color: var(--gray); display: block; margin-top: 0.5rem;">
-              🎵 Placez vos fichiers audio dans: frontend/assets/uploads/audio/<br>
-              Formats supportés: MP3, WAV, OGG
-            </small>
-          </div>
-
-          <div class="form-group">
-            <label>URL de la vidéo</label>
-            <input type="url" name="video_url" placeholder="/assets/uploads/videos/making-of.mp4">
-            <small style="color: var(--gray); display: block; margin-top: 0.5rem;">
-              🎬 Placez vos vidéos dans: frontend/assets/uploads/videos/<br>
-              Formats supportés: MP4, WEBM, OGG
-            </small>
-          </div>
-
-          <button type="submit" class="btn btn-primary" style="width: 100%;">
-            ➕ Ajouter au Portfolio
-          </button>
-        </form>
-      </div>
-
-      <!-- Liste des éléments existants -->
-      <div class="form-container" style="max-width: 100%;">
-        <h3 style="color: var(--primary); margin-bottom: 1.5rem;">Éléments Existants</h3>
-        <div id="admin-portfolio-list">
-          <p style="text-align: center; color: var(--gray);">Chargement...</p>
-        </div>
-      </div>
-    </section>
-  `;
-}
-
-// Charger le portfolio pour l'admin
-async function loadAdminPortfolio() {
-  try {
-    const items = await api.getPortfolio();
-    renderAdminPortfolio(items);
-  } catch (error) {
-    document.getElementById('admin-portfolio-list').innerHTML = 
-      '<p style="color: var(--primary);">Erreur de chargement</p>';
-  }
-}
-
-// Afficher le portfolio dans l'admin
-function renderAdminPortfolio(items) {
-  const list = document.getElementById('admin-portfolio-list');
-  
-  if (items.length === 0) {
-    list.innerHTML = '<p style="text-align: center; color: var(--gray);">Aucun élément</p>';
-    return;
-  }
-
-  list.innerHTML = `
-    <div style="display: grid; gap: 1.5rem;">
-      ${items.map(item => `
-        <div class="service-card" style="display: grid; grid-template-columns: 150px 1fr auto; gap: 1.5rem; align-items: start;">
-          <!-- Miniature -->
-          <div>
-            ${item.image_url ? `
-              <img 
-                src="${item.image_url}" 
-                alt="${item.title}"
-                style="width: 100%; height: 100px; object-fit: cover; border-radius: 10px;"
-              />
-            ` : `
-              <div style="width: 100%; height: 100px; background: var(--dark); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--gray);">
-                Pas d'image
-              </div>
-            `}
-            ${item.audio_url ? '<div style="margin-top: 0.5rem; color: var(--success);">🎵 Audio</div>' : ''}
-            ${item.video_url ? '<div style="margin-top: 0.5rem; color: var(--success);">🎬 Vidéo</div>' : ''}
-          </div>
-
-          <!-- Informations -->
-          <div>
-            <h4 style="color: var(--primary); margin-bottom: 0.5rem;">${item.title}</h4>
-            <span style="display: inline-block; padding: 0.25rem 0.75rem; background: var(--secondary); border-radius: 20px; font-size: 0.85rem; margin-bottom: 0.5rem;">
-              ${item.service_type}
-            </span>
-            <p style="color: var(--gray); font-size: 0.9rem; margin-top: 0.5rem;">
-              ${item.description || 'Pas de description'}
-            </p>
-            <p style="color: var(--gray); font-size: 0.85rem; margin-top: 0.5rem;">
-              Ajouté le ${new Date(item.created_at).toLocaleDateString('fr-FR')}
-            </p>
-          </div>
-
-          <!-- Actions -->
-          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-            <button 
-              class="btn btn-outline" 
-              onclick="editPortfolioItem(${item.id})"
-              style="padding: 0.5rem 1rem; font-size: 0.9rem;"
-            >
-              ✏️ Modifier
-            </button>
-            <button 
-              class="btn btn-outline" 
-              onclick="deletePortfolioItem(${item.id})"
-              style="padding: 0.5rem 1rem; font-size: 0.9rem; border-color: var(--primary); color: var(--primary);"
-            >
-              🗑️ Supprimer
-            </button>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
-// Ajouter un élément au portfolio
-async function handleAddPortfolio(e) {
-  e.preventDefault();
-  const formData = new FormData(e.target);
-  const data = Object.fromEntries(formData);
-  
-  try {
-    await api.addPortfolioItem(data);
-    alert('✅ Élément ajouté au portfolio !');
-    e.target.reset();
-    loadAdminPortfolio(); // Recharger la liste
-  } catch (error) {
-    alert('❌ Erreur lors de l\'ajout. Vérifiez que vous êtes bien connecté.');
-  }
-}
-
-// Supprimer un élément
-async function deletePortfolioItem(id) {
-  if (!confirm('Êtes-vous sûr de vouloir supprimer cet élément ?')) {
-    return;
-  }
-  
-  try {
-    await api.deletePortfolioItem(id);
-    alert('✅ Élément supprimé !');
-    loadAdminPortfolio();
-  } catch (error) {
-    alert('❌ Erreur lors de la suppression.');
-  }
-}
-
-// Modifier un élément (à implémenter)
-function editPortfolioItem(id) {
-  alert('Fonction de modification à venir. Pour l\'instant, supprimez et recréez l\'élément.');
-}
-
-function portfolioPage() {
-  // Charger les éléments du portfolio au chargement
-  setTimeout(loadPortfolioItems, 0);
-
-  return `
-    <section class="section" style="padding-top: 120px;">
-      <h2 class="section-title">Notre Portfolio</h2>
-      
-      <!-- Filtres -->
-      <div style="text-align: center; margin-bottom: 3rem;">
-        <button class="btn btn-outline" onclick="filterPortfolio('all')" style="margin: 0.5rem;">Tout</button>
-        <button class="btn btn-outline" onclick="filterPortfolio('mastering')" style="margin: 0.5rem;">Mastering</button>
-        <button class="btn btn-outline" onclick="filterPortfolio('recording')" style="margin: 0.5rem;">Enregistrement</button>
-        <button class="btn btn-outline" onclick="filterPortfolio('studio')" style="margin: 0.5rem;">Studio</button>
-      </div>
-
-      <!-- Grille Portfolio -->
-      <div id="portfolio-grid" class="services-grid">
-        <p style="text-align: center; color: var(--gray);">Chargement...</p>
-      </div>
-
-      <!-- Modal pour voir en grand -->
-      <div id="media-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-          <span class="modal-close" onclick="closeModal()">&times;</span>
-          <div id="modal-body"></div>
-        </div>
-      </div>
-    </section>
-  `;
-}
-
-// Charger les éléments du portfolio
-async function loadPortfolioItems(filter = 'all') {
-  try {
-    const items = await api.getPortfolio(filter === 'all' ? null : filter);
-    renderPortfolio(items);
-  } catch (error) {
-    document.getElementById('portfolio-grid').innerHTML = 
-      '<p style="color: var(--primary);">Erreur de chargement</p>';
-  }
-}
-
-// Afficher le portfolio
-function renderPortfolio(items) {
-  const grid = document.getElementById('portfolio-grid');
-  
-  if (items.length === 0) {
-    grid.innerHTML = '<p style="text-align: center; color: var(--gray);">Aucun élément pour le moment</p>';
-    return;
-  }
-
-  grid.innerHTML = items.map(item => `
-    <div class="service-card portfolio-item" data-type="${item.service_type}">
-      <!-- Image -->
-      ${item.image_url ? `
-        <img 
-          src="${item.image_url}" 
-          alt="${item.title}"
-          style="width: 100%; height: 200px; object-fit: cover; border-radius: 10px; margin-bottom: 1rem; cursor: pointer;"
-          onclick="openImageModal('${item.image_url}', '${item.title}')"
-        />
-      ` : '<div style="width: 100%; height: 200px; background: var(--dark); border-radius: 10px; margin-bottom: 1rem;"></div>'}
-
-      <!-- Titre -->
-      <h3 style="color: var(--primary); margin-bottom: 0.5rem;">${item.title}</h3>
-      
-      <!-- Badge du type -->
-      <span style="display: inline-block; padding: 0.25rem 0.75rem; background: var(--secondary); border-radius: 20px; font-size: 0.85rem; margin-bottom: 1rem;">
-        ${item.service_type}
-      </span>
-
-      <!-- Description -->
-      <p style="color: var(--gray); margin-bottom: 1rem;">${item.description || ''}</p>
-
-      <!-- Player Audio -->
-      ${item.audio_url ? `
-        <audio controls style="width: 100%; margin-top: 1rem;" preload="metadata">
-          <source src="${item.audio_url}" type="audio/mpeg">
-          <source src="${item.audio_url}" type="audio/wav">
-          <source src="${item.audio_url}" type="audio/ogg">
-          Votre navigateur ne supporte pas l'audio.
-        </audio>
-      ` : ''}
-
-      <!-- Bouton Voir Plus -->
-      ${item.video_url ? `
-        <button 
-          class="btn btn-primary" 
-          style="width: 100%; margin-top: 1rem;"
-          onclick="openVideoModal('${item.video_url}', '${item.title}')"
-        >
-          🎥 Voir la Vidéo
-        </button>
-      ` : ''}
-    </div>
-  `).join('');
-}
-
-// Filtrer le portfolio
-function filterPortfolio(type) {
-  loadPortfolioItems(type);
-  
-  // Mettre à jour les boutons actifs
-  document.querySelectorAll('.btn-outline').forEach(btn => {
-    btn.style.background = 'transparent';
-    btn.style.color = 'var(--primary)';
-  });
-  event.target.style.background = 'var(--primary)';
-  event.target.style.color = 'var(--light)';
-}
-
-// Ouvrir l'image en grand
-function openImageModal(imageUrl, title) {
-  const modal = document.getElementById('media-modal');
-  const modalBody = document.getElementById('modal-body');
-  
-  modalBody.innerHTML = `
-    <h2 style="color: var(--primary); margin-bottom: 1rem;">${title}</h2>
-    <img 
-      src="${imageUrl}" 
-      alt="${title}"
-      style="width: 100%; max-height: 80vh; object-fit: contain; border-radius: 10px;"
-    />
-  `;
-  
-  modal.style.display = 'flex';
-}
-
-// Ouvrir la vidéo en modal
-function openVideoModal(videoUrl, title) {
-  const modal = document.getElementById('media-modal');
-  const modalBody = document.getElementById('modal-body');
-  
-  modalBody.innerHTML = `
-    <h2 style="color: var(--primary); margin-bottom: 1rem;">${title}</h2>
-    <video 
-      controls 
-      autoplay
-      style="width: 100%; max-height: 80vh; border-radius: 10px;"
-    >
-      <source src="${videoUrl}" type="video/mp4">
-      <source src="${videoUrl}" type="video/webm">
-      <source src="${videoUrl}" type="video/ogg">
-      Votre navigateur ne supporte pas la vidéo.
-    </video>
-  `;
-  
-  modal.style.display = 'flex';
-}
-
-// Fermer le modal
-function closeModal() {
-  const modal = document.getElementById('media-modal');
-  const modalBody = document.getElementById('modal-body');
-  
-  // Arrêter la vidéo si elle joue
-  const video = modalBody.querySelector('video');
-  if (video) {
-    video.pause();
-  }
-  
-  modal.style.display = 'none';
-  modalBody.innerHTML = '';
-}
-
-// Fermer en cliquant en dehors
-document.addEventListener('click', (e) => {
-  const modal = document.getElementById('media-modal');
-  if (e.target === modal) {
-    closeModal();
-  }
-});
 
 // Handlers de formulaires
 async function handleEquipmentBooking(e) {
@@ -928,20 +553,20 @@ function adminDashboardPage() {
 
   setTimeout(loadAdminData, 0);
 
-  return `
-    <section class="section" style="padding-top: 120px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h2 class="section-title" style="margin: 0;">Dashboard Admin</h2>
+return `
+  <section class="section" style="padding-top: 120px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+      <h2 class="section-title" style="margin: 0;">Dashboard Admin</h2>
+      <div style="display: flex; gap: 1rem;">
+        <button class="btn btn-primary" onclick="navigateTo('/admin-portfolio')">🖼️ Portfolio</button>
         <button class="btn btn-outline" onclick="handleLogout()">Déconnexion</button>
-        <button class="btn btn-primary" onclick="navigateTo('/admin-portfolio')">
-          Gérer le Portfolio
-        </button>
       </div>
-      <div id="admin-content">
-        <p style="text-align: center; color: var(--gray);">Chargement...</p>
-      </div>
-    </section>
-  `;
+    </div>
+    <div id="admin-content">
+      <p style="text-align: center; color: var(--gray);">Chargement...</p>
+    </div>
+  </section>
+`;
 }
 
 async function loadAdminData() {
@@ -980,18 +605,256 @@ async function loadAdminData() {
   }
 }
 
+// REMPLACEZ la fonction renderBookingsList dans main.js par celle-ci
+
 function renderBookingsList(bookings, type) {
   if (!bookings || bookings.length === 0) {
     return '<p style="color: var(--gray);">Aucune réservation</p>';
   }
   
-  return bookings.slice(0, 5).map(b => `
-    <div style="padding: 1rem; background: var(--dark); border-radius: 10px; margin-top: 1rem;">
-      <p><strong>${b.name}</strong> - ${b.email}</p>
-      <p style="color: var(--gray); font-size: 0.9rem;">${new Date(b.created_at).toLocaleString('fr-FR')}</p>
-      <span style="display: inline-block; padding: 0.25rem 0.75rem; background: ${b.status === 'pending' ? 'orange' : 'green'}; border-radius: 20px; font-size: 0.85rem; margin-top: 0.5rem;">${b.status}</span>
+  return bookings.map(b => `
+    <div style="padding: 1.5rem; background: var(--dark); border-radius: 10px; margin-top: 1rem; border-left: 4px solid ${getStatusColor(b.status)};">
+      <!-- En-tête -->
+      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+        <div>
+          <p style="font-size: 1.1rem; font-weight: 600;"><strong>${b.name}</strong></p>
+          <p style="color: var(--gray); font-size: 0.9rem; margin-top: 0.25rem;">
+            📧 ${b.email} | 📞 ${b.phone}
+          </p>
+        </div>
+        <span style="display: inline-block; padding: 0.5rem 1rem; background: ${getStatusColor(b.status)}; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">
+          ${getStatusLabel(b.status)}
+        </span>
+      </div>
+
+      <!-- Détails selon le type -->
+      <div style="background: var(--dark-secondary); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+        ${renderBookingDetails(b, type)}
+      </div>
+
+      <!-- Message -->
+      ${b.message ? `
+        <div style="padding: 1rem; background: var(--dark-secondary); border-radius: 8px; margin-bottom: 1rem;">
+          <p style="color: var(--gray); font-size: 0.9rem; font-style: italic;">"${b.message}"</p>
+        </div>
+      ` : ''}
+
+      <!-- Date de création -->
+      <p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 1rem;">
+        📅 Reçu le ${new Date(b.created_at).toLocaleString('fr-FR')}
+      </p>
+
+      <!-- Actions -->
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        ${b.status === 'pending' ? `
+          <button 
+            onclick="updateBookingStatus(${b.id}, '${type}', 'confirmed')"
+            class="btn btn-primary"
+            style="padding: 0.5rem 1rem; font-size: 0.9rem;"
+          >
+            ✅ Confirmer
+          </button>
+        ` : ''}
+        
+        ${b.status === 'confirmed' ? `
+          <button 
+            onclick="updateBookingStatus(${b.id}, '${type}', 'completed')"
+            class="btn btn-outline"
+            style="padding: 0.5rem 1rem; font-size: 0.9rem; border-color: var(--success); color: var(--success);"
+          >
+            ✓ Marquer comme terminé
+          </button>
+        ` : ''}
+        
+        ${b.status !== 'cancelled' ? `
+          <button 
+            onclick="updateBookingStatus(${b.id}, '${type}', 'cancelled')"
+            class="btn btn-outline"
+            style="padding: 0.5rem 1rem; font-size: 0.9rem; border-color: var(--primary); color: var(--primary);"
+          >
+            ❌ Annuler
+          </button>
+        ` : ''}
+        
+        <button 
+          onclick="window.open('mailto:${b.email}?subject=Votre réservation UntilTheRock', '_blank')"
+          class="btn btn-outline"
+          style="padding: 0.5rem 1rem; font-size: 0.9rem;"
+        >
+          📧 Envoyer un email
+        </button>
+        
+        <button 
+          onclick="deleteBooking(${b.id}, '${type}')"
+          class="btn btn-outline"
+          style="padding: 0.5rem 1rem; font-size: 0.9rem; border-color: #666; color: #666;"
+        >
+          🗑️ Supprimer
+        </button>
+      </div>
     </div>
   `).join('');
+}
+
+// Afficher les détails selon le type de réservation
+function renderBookingDetails(booking, type) {
+  switch(type) {
+    case 'equipment':
+      return `
+        <p style="color: var(--light); margin-bottom: 0.5rem;"><strong>🎸 Matériel:</strong> ${booking.equipment}</p>
+        <p style="color: var(--gray); font-size: 0.9rem;">📅 Du ${new Date(booking.start_date).toLocaleDateString('fr-FR')} au ${new Date(booking.end_date).toLocaleDateString('fr-FR')}</p>
+      `;
+    
+    case 'studio':
+      return `
+        <p style="color: var(--light); margin-bottom: 0.5rem;"><strong>🎙️ Studio:</strong> ${booking.studio_type}</p>
+        <p style="color: var(--gray); font-size: 0.9rem;">📅 ${new Date(booking.date).toLocaleDateString('fr-FR')}</p>
+        <p style="color: var(--gray); font-size: 0.9rem;">🕐 ${booking.time_slot} (${booking.duration}h)</p>
+      `;
+    
+    case 'mastering':
+      return `
+        <p style="color: var(--light); margin-bottom: 0.5rem;"><strong>🎚️ Mastering:</strong> ${booking.track_count} piste(s)</p>
+        <p style="color: var(--gray); font-size: 0.9rem;">📀 Format: ${booking.format}</p>
+      `;
+    
+    case 'recording':
+      return `
+        <p style="color: var(--light); margin-bottom: 0.5rem;"><strong>🎵 Projet:</strong> ${booking.project_type}</p>
+        <p style="color: var(--gray); font-size: 0.9rem;">📅 ${new Date(booking.date).toLocaleDateString('fr-FR')}</p>
+        <p style="color: var(--gray); font-size: 0.9rem;">⏱️ Durée estimée: ${booking.duration}h</p>
+      `;
+    
+    default:
+      return '';
+  }
+}
+
+// Couleurs selon le statut
+function getStatusColor(status) {
+  const colors = {
+    pending: '#ff9800',    // Orange
+    confirmed: '#2196f3',  // Bleu
+    completed: '#4caf50',  // Vert
+    cancelled: '#f44336'   // Rouge
+  };
+  return colors[status] || '#666';
+}
+
+// Labels selon le statut
+function getStatusLabel(status) {
+  const labels = {
+    pending: '⏳ En attente',
+    confirmed: '✅ Confirmé',
+    completed: '✓ Terminé',
+    cancelled: '❌ Annulé'
+  };
+  return labels[status] || status;
+}
+
+// Mettre à jour le statut d'une réservation
+async function updateBookingStatus(id, type, newStatus) {
+  const confirmMessages = {
+    confirmed: 'Confirmer cette réservation ?',
+    completed: 'Marquer comme terminée ?',
+    cancelled: 'Annuler cette réservation ?'
+  };
+  
+  if (!confirm(confirmMessages[newStatus])) {
+    return;
+  }
+  
+  try {
+    await api.updateBookingStatus(type, id, newStatus);
+    alert(`✅ Statut mis à jour: ${getStatusLabel(newStatus)}`);
+    loadAdminData(); // Recharger les données
+  } catch (error) {
+    alert('❌ Erreur lors de la mise à jour');
+  }
+}
+
+// Supprimer une réservation
+async function deleteBooking(id, type) {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer cette réservation ?\n\nCette action est irréversible.')) {
+    return;
+  }
+  
+  try {
+    // TODO: Ajouter une route DELETE dans le backend
+    alert('⚠️ Fonction de suppression à implémenter côté backend');
+  } catch (error) {
+    alert('❌ Erreur lors de la suppression');
+  }
+}
+
+// REMPLACEZ aussi renderContactsList
+
+function renderContactsList(contacts) {
+  if (!contacts || contacts.length === 0) {
+    return '<p style="color: var(--gray);">Aucun message</p>';
+  }
+  
+  return contacts.map(c => `
+    <div style="padding: 1.5rem; background: var(--dark); border-radius: 10px; margin-top: 1rem; border-left: 4px solid ${c.status === 'unread' ? '#ff9800' : '#4caf50'};">
+      <!-- En-tête -->
+      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+        <div>
+          <p style="font-size: 1.1rem; font-weight: 600;"><strong>${c.name}</strong></p>
+          <p style="color: var(--gray); font-size: 0.9rem; margin-top: 0.25rem;">📧 ${c.email}</p>
+        </div>
+        <span style="display: inline-block; padding: 0.5rem 1rem; background: ${c.status === 'unread' ? '#ff9800' : '#4caf50'}; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">
+          ${c.status === 'unread' ? '📬 Non lu' : '✓ Lu'}
+        </span>
+      </div>
+
+      <!-- Sujet -->
+      <p style="color: var(--primary); font-weight: 600; margin-bottom: 0.75rem;">
+        Sujet: ${c.subject}
+      </p>
+
+      <!-- Message -->
+      <div style="padding: 1rem; background: var(--dark-secondary); border-radius: 8px; margin-bottom: 1rem;">
+        <p style="color: var(--gray); line-height: 1.6;">${c.message}</p>
+      </div>
+
+      <!-- Date -->
+      <p style="color: var(--gray); font-size: 0.85rem; margin-bottom: 1rem;">
+        📅 Reçu le ${new Date(c.created_at).toLocaleString('fr-FR')}
+      </p>
+
+      <!-- Actions -->
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        ${c.status === 'unread' ? `
+          <button 
+            onclick="markContactAsRead(${c.id})"
+            class="btn btn-primary"
+            style="padding: 0.5rem 1rem; font-size: 0.9rem;"
+          >
+            ✓ Marquer comme lu
+          </button>
+        ` : ''}
+        
+        <button 
+          onclick="window.open('mailto:${c.email}?subject=Re: ${encodeURIComponent(c.subject)}', '_blank')"
+          class="btn btn-outline"
+          style="padding: 0.5rem 1rem; font-size: 0.9rem;"
+        >
+          📧 Répondre
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Marquer un message comme lu
+async function markContactAsRead(id) {
+  try {
+    await api.updateContactStatus(id, 'read');
+    alert('✅ Message marqué comme lu');
+    loadAdminData();
+  } catch (error) {
+    alert('❌ Erreur lors de la mise à jour');
+  }
 }
 
 function renderContactsList(contacts) {
@@ -1018,3 +881,387 @@ document.addEventListener('DOMContentLoaded', () => {
   renderPage(window.location.pathname);
   updateActiveLink(window.location.pathname);
 });
+
+// AJOUTEZ CES FONCTIONS À LA FIN DE VOTRE main.js
+
+// Page admin portfolio
+function adminPortfolioPage() {
+  const token = localStorage.getItem('admin_token');
+  if (!token) {
+    navigateTo('/admin-login');
+    return '';
+  }
+
+  setTimeout(() => {
+    loadAdminPortfolio();
+    document.getElementById('portfolio-add-form')?.addEventListener('submit', handleAddPortfolioWithFiles);
+  }, 0);
+
+  return `
+    <section class="section" style="padding-top: 120px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2 class="section-title" style="margin: 0;">🖼️ Gestion Portfolio</h2>
+        <button class="btn btn-outline" onclick="navigateTo('/admin-dashboard')">← Retour Dashboard</button>
+      </div>
+
+      <!-- Formulaire d'ajout -->
+      <div class="form-container" style="margin-bottom: 3rem;">
+        <h3 style="color: var(--primary); margin-bottom: 1.5rem;">➕ Ajouter un Élément</h3>
+        <form id="portfolio-add-form" enctype="multipart/form-data">
+          <div class="form-group">
+            <label>Type de service *</label>
+            <select name="service_type" required>
+              <option value="mastering">Mastering</option>
+              <option value="recording">Enregistrement</option>
+              <option value="studio">Studio</option>
+              <option value="equipment">Matériel</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Titre *</label>
+            <input type="text" name="title" required placeholder="Ex: Projet Rock 2025">
+          </div>
+
+          <div class="form-group">
+            <label>Description</label>
+            <textarea name="description" placeholder="Décrivez le projet..." rows="3"></textarea>
+          </div>
+
+          <!-- Upload Image -->
+          <div class="form-group">
+            <label>📷 Image</label>
+            <div class="file-upload-container">
+              <input 
+                type="file" 
+                name="image" 
+                id="image-upload" 
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                onchange="previewFile(this, 'image-preview')"
+              >
+              <label for="image-upload" class="file-upload-label">
+                📁 Choisir une image
+              </label>
+              <div id="image-preview" class="file-preview"></div>
+            </div>
+            <small style="color: var(--gray); display: block; margin-top: 0.5rem;">
+              Formats acceptés: JPG, PNG, GIF, WEBP - Max 100MB
+            </small>
+          </div>
+
+          <!-- Upload Audio -->
+          <div class="form-group">
+            <label>🎵 Audio</label>
+            <div class="file-upload-container">
+              <input 
+                type="file" 
+                name="audio" 
+                id="audio-upload" 
+                accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg"
+                onchange="previewFile(this, 'audio-preview')"
+              >
+              <label for="audio-upload" class="file-upload-label">
+                📁 Choisir un fichier audio
+              </label>
+              <div id="audio-preview" class="file-preview"></div>
+            </div>
+            <small style="color: var(--gray); display: block; margin-top: 0.5rem;">
+              Formats acceptés: MP3, WAV, OGG - Max 100MB
+            </small>
+          </div>
+
+          <!-- Upload Video -->
+          <div class="form-group">
+            <label>🎬 Vidéo</label>
+            <div class="file-upload-container">
+              <input 
+                type="file" 
+                name="video" 
+                id="video-upload" 
+                accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                onchange="previewFile(this, 'video-preview')"
+              >
+              <label for="video-upload" class="file-upload-label">
+                📁 Choisir une vidéo
+              </label>
+              <div id="video-preview" class="file-preview"></div>
+            </div>
+            <small style="color: var(--gray); display: block; margin-top: 0.5rem;">
+              Formats acceptés: MP4, WEBM, OGG - Max 100MB
+            </small>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%;" id="submit-btn">
+            ➕ Ajouter au Portfolio
+          </button>
+          
+          <div id="upload-progress" style="display: none; margin-top: 1rem;">
+            <div style="background: var(--dark); border-radius: 10px; height: 30px; overflow: hidden;">
+              <div id="progress-bar" style="background: linear-gradient(90deg, var(--primary), var(--secondary)); height: 100%; width: 0%; transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;"></div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Liste des éléments existants -->
+      <div class="form-container" style="max-width: 100%;">
+        <h3 style="color: var(--primary); margin-bottom: 1.5rem;">📋 Éléments Existants</h3>
+        <div id="admin-portfolio-list">
+          <p style="text-align: center; color: var(--gray);">Chargement...</p>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+// Prévisualiser les fichiers sélectionnés
+function previewFile(input, previewId) {
+  const preview = document.getElementById(previewId);
+  const file = input.files[0];
+  
+  if (!file) {
+    preview.innerHTML = '';
+    return;
+  }
+
+  const fileSize = (file.size / (1024 * 1024)).toFixed(2); // MB
+  const fileName = file.name;
+
+  if (input.accept.includes('image')) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      preview.innerHTML = `
+        <div style="margin-top: 1rem;">
+          <img src="${e.target.result}" alt="Preview" style="max-width: 200px; max-height: 200px; border-radius: 10px; object-fit: cover;">
+          <p style="color: var(--gray); font-size: 0.9rem; margin-top: 0.5rem;">${fileName} (${fileSize} MB)</p>
+        </div>
+      `;
+    };
+    reader.readAsDataURL(file);
+  } else {
+    preview.innerHTML = `
+      <div style="margin-top: 1rem; padding: 1rem; background: var(--dark); border-radius: 10px;">
+        <p style="color: var(--success);">✅ ${fileName}</p>
+        <p style="color: var(--gray); font-size: 0.9rem;">${fileSize} MB</p>
+      </div>
+    `;
+  }
+}
+
+// Ajouter un élément avec fichiers
+async function handleAddPortfolioWithFiles(e) {
+  e.preventDefault();
+  
+  const submitBtn = document.getElementById('submit-btn');
+  const progressContainer = document.getElementById('upload-progress');
+  const progressBar = document.getElementById('progress-bar');
+  
+  submitBtn.disabled = true;
+  submitBtn.textContent = '⏳ Upload en cours...';
+  progressContainer.style.display = 'block';
+  
+  const formData = new FormData(e.target);
+  const token = localStorage.getItem('admin_token');
+
+  try {
+    // Créer une requête avec suivi de progression
+    const xhr = new XMLHttpRequest();
+    
+    // Suivre la progression
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable) {
+        const percentComplete = Math.round((event.loaded / event.total) * 100);
+        progressBar.style.width = percentComplete + '%';
+        progressBar.textContent = percentComplete + '%';
+      }
+    });
+
+    // Promise pour gérer la requête
+    const uploadPromise = new Promise((resolve, reject) => {
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(JSON.parse(xhr.responseText));
+        } else {
+          reject(new Error(`Erreur ${xhr.status}`));
+        }
+      });
+      
+      xhr.addEventListener('error', () => reject(new Error('Erreur réseau')));
+      xhr.addEventListener('abort', () => reject(new Error('Upload annulé')));
+    });
+
+    xhr.open('POST', '/api/portfolio');
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.send(formData);
+
+    await uploadPromise;
+    
+    alert('✅ Élément ajouté au portfolio !');
+    e.target.reset();
+    
+    // Nettoyer les previews
+    document.getElementById('image-preview').innerHTML = '';
+    document.getElementById('audio-preview').innerHTML = '';
+    document.getElementById('video-preview').innerHTML = '';
+    
+    loadAdminPortfolio(); // Recharger la liste
+    
+  } catch (error) {
+    console.error('Erreur upload:', error);
+    alert('❌ Erreur lors de l\'upload. Vérifiez la taille des fichiers (max 100MB).');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '➕ Ajouter au Portfolio';
+    progressContainer.style.display = 'none';
+    progressBar.style.width = '0%';
+  }
+}
+
+// Charger le portfolio pour l'admin
+async function loadAdminPortfolio() {
+  try {
+    const items = await api.getPortfolio();
+    renderAdminPortfolio(items);
+  } catch (error) {
+    document.getElementById('admin-portfolio-list').innerHTML = 
+      '<p style="color: var(--primary);">Erreur de chargement</p>';
+  }
+}
+
+// Afficher le portfolio dans l'admin
+function renderAdminPortfolio(items) {
+  const list = document.getElementById('admin-portfolio-list');
+  
+  if (items.length === 0) {
+    list.innerHTML = '<p style="text-align: center; color: var(--gray);">Aucun élément dans le portfolio</p>';
+    return;
+  }
+
+  list.innerHTML = `
+    <div style="display: grid; gap: 2rem;">
+      ${items.map(item => `
+        <div class="service-card" style="position: relative;">
+          <div style="display: grid; grid-template-columns: 200px 1fr; gap: 2rem; align-items: start;">
+            
+            <!-- Miniatures -->
+            <div>
+              ${item.image_url ? `
+                <div style="position: relative;">
+                  <img 
+                    src="${item.image_url}" 
+                    alt="${item.title}"
+                    style="width: 100%; height: 150px; object-fit: cover; border-radius: 10px; cursor: pointer;"
+                    onclick="window.open('${item.image_url}', '_blank')"
+                  />
+                  <button 
+                    onclick="deletePortfolioFile(${item.id}, 'image')"
+                    style="position: absolute; top: 5px; right: 5px; background: rgba(255,51,102,0.9); border: none; color: white; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;"
+                    title="Supprimer l'image"
+                  >×</button>
+                </div>
+              ` : '<div style="width: 100%; height: 150px; background: var(--dark); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--gray);">Pas d\'image</div>'}
+              
+              <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                ${item.audio_url ? `
+                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem; background: var(--dark); border-radius: 5px;">
+                    <span style="color: var(--success); font-size: 0.9rem;">🎵 Audio</span>
+                    <button 
+                      onclick="deletePortfolioFile(${item.id}, 'audio')"
+                      style="background: transparent; border: none; color: var(--primary); cursor: pointer; font-size: 1.2rem;"
+                      title="Supprimer l'audio"
+                    >×</button>
+                  </div>
+                ` : ''}
+                
+                ${item.video_url ? `
+                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem; background: var(--dark); border-radius: 5px;">
+                    <span style="color: var(--success); font-size: 0.9rem;">🎬 Vidéo</span>
+                    <button 
+                      onclick="deletePortfolioFile(${item.id}, 'video')"
+                      style="background: transparent; border: none; color: var(--primary); cursor: pointer; font-size: 1.2rem;"
+                      title="Supprimer la vidéo"
+                    >×</button>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+
+            <!-- Informations -->
+            <div>
+              <h4 style="color: var(--primary); margin-bottom: 0.5rem; font-size: 1.3rem;">${item.title}</h4>
+              <span style="display: inline-block; padding: 0.25rem 0.75rem; background: var(--secondary); border-radius: 20px; font-size: 0.85rem; margin-bottom: 1rem;">
+                ${item.service_type}
+              </span>
+              <p style="color: var(--gray); line-height: 1.6; margin-bottom: 1rem;">
+                ${item.description || '<em>Pas de description</em>'}
+              </p>
+              <p style="color: var(--gray); font-size: 0.85rem;">
+                📅 Ajouté le ${new Date(item.created_at).toLocaleDateString('fr-FR', { 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </p>
+              
+              <!-- Actions -->
+              <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button 
+                  class="btn btn-outline" 
+                  onclick="deletePortfolioItem(${item.id}, '${item.title}')"
+                  style="padding: 0.75rem 1.5rem; border-color: var(--primary); color: var(--primary);"
+                >
+                  🗑️ Supprimer l'élément
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// Supprimer un fichier spécifique
+async function deletePortfolioFile(id, type) {
+  const typeLabels = {
+    image: 'l\'image',
+    audio: 'l\'audio',
+    video: 'la vidéo'
+  };
+  
+  if (!confirm(`Êtes-vous sûr de vouloir supprimer ${typeLabels[type]} ?`)) {
+    return;
+  }
+  
+  try {
+    const token = localStorage.getItem('admin_token');
+    const response = await fetch(`/api/portfolio/${id}/file/${type}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) throw new Error('Erreur suppression');
+    
+    alert(`✅ ${typeLabels[type].charAt(0).toUpperCase() + typeLabels[type].slice(1)} supprimé(e) !`);
+    loadAdminPortfolio();
+  } catch (error) {
+    alert('❌ Erreur lors de la suppression.');
+  }
+}
+
+// Supprimer un élément complet
+async function deletePortfolioItem(id, title) {
+  if (!confirm(`Êtes-vous sûr de vouloir supprimer l'élément "${title}" ?\n\nCette action supprimera tous les fichiers associés et est irréversible.`)) {
+    return;
+  }
+  
+  try {
+    await api.deletePortfolioItem(id);
+    alert('✅ Élément supprimé !');
+    loadAdminPortfolio();
+  } catch (error) {
+    alert('❌ Erreur lors de la suppression.');
+  }
+}
