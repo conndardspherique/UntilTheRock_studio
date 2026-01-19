@@ -23,6 +23,14 @@ const api = {
     return response.json();
   },
 
+
+
+async deleteBooking(type, id) {
+  return this.request(`/bookings/${type}/${id}`, {
+    method: 'DELETE'
+  });
+},
+
   // Authentification
   async login(credentials) {
     return this.request('/auth/login', {
@@ -120,3 +128,4 @@ const api = {
     });
   }
 };
+

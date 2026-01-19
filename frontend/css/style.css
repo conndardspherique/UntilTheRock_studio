@@ -550,3 +550,115 @@ input[type="file"] {
 .service-card button:hover {
   transform: scale(1.05);
 }
+
+/* AJOUTEZ CE CSS À LA FIN DE style.css */
+
+/* Filtres Portfolio */
+.filter-btn {
+  transition: all 0.3s ease;
+}
+
+.filter-btn.active {
+  background: var(--primary) !important;
+  color: var(--light) !important;
+  border-color: var(--primary) !important;
+}
+
+.filter-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Portfolio Items */
+.portfolio-item {
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.portfolio-item:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 50px rgba(255, 51, 102, 0.3);
+}
+
+/* Modal Portfolio */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.95);
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+  overflow-y: auto;
+  padding: 2rem 0;
+}
+
+.modal-content {
+  position: relative;
+  background: var(--dark-secondary);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: slideUp 0.3s ease;
+  margin: auto;
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: var(--gray);
+  cursor: pointer;
+  transition: color 0.3s ease;
+  z-index: 10;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-close:hover {
+  color: var(--primary);
+  background: rgba(255, 51, 102, 0.2);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Modal */
+@media (max-width: 768px) {
+  .modal-content {
+    max-width: 95%;
+    margin: 1rem auto;
+  }
+  
+  .modal {
+    padding: 1rem 0;
+  }
+}

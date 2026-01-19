@@ -49,7 +49,7 @@ Ouvrez votre navigateur sur: **http://localhost:3000**
 
 ## 📋 Checklist Avant Production
 
-- [ ] Changer `JWT_SECRET` dans `.env`
+
 - [ ] Changer le mot de passe admin
 - [ ] Remplir les mentions légales avec vos vraies informations
 - [ ] Configurer un nom de domaine

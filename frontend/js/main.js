@@ -1,6 +1,11 @@
 // Router simple pour SPA
 const routes = {
   '/': homePage,
+  '/portfolio': portfolioPage,  // Portfolio général
+  '/portfolio/materiel': portfolioMaterielPage,  // Portfolio matériel
+  '/portfolio/studio': portfolioStudioPage,  // Portfolio studio
+  '/portfolio/mastering': portfolioMasteringPage,  // Portfolio mastering
+  '/portfolio/enregistrement': portfolioRecordingPage,  // Portfolio enregistrement
   '/reservation-materiel': reservationMaterielPage,
   '/reservation-studio': reservationStudioPage,
   '/mastering': masteringPage,
@@ -111,6 +116,14 @@ function reservationMaterielPage() {
   return `
     <section class="section" style="padding-top: 120px;">
       <h2 class="section-title">Location de Matériel</h2>
+      
+      
+      <div style="text-align: center; margin-bottom: 3rem;">
+        <button class="btn btn-outline" onclick="navigateTo('/portfolio/materiel')">
+          🖼️ Voir notre matériel en photos
+        </button>
+      </div>
+
       <div class="form-container">
         <form id="equipment-form">
           <div class="form-group">
@@ -166,6 +179,14 @@ function reservationStudioPage() {
   return `
     <section class="section" style="padding-top: 120px;">
       <h2 class="section-title">Réservation Studio</h2>
+      
+      <!-- AJOUTEZ CE BLOC -->
+      <div style="text-align: center; margin-bottom: 3rem;">
+        <button class="btn btn-outline" onclick="navigateTo('/portfolio/studio')">
+          🖼️ Voir notre studio en photos
+        </button>
+      </div>
+      
       <div class="form-container">
         <form id="studio-form">
           <div class="form-group">
@@ -227,6 +248,14 @@ function masteringPage() {
   return `
     <section class="section" style="padding-top: 120px;">
       <h2 class="section-title">Service de Mastering</h2>
+      
+      <!-- AJOUTEZ CE BLOC -->
+      <div style="text-align: center; margin-bottom: 3rem;">
+        <button class="btn btn-outline" onclick="navigateTo('/portfolio/mastering')">
+          🖼️ Voir notre studio en photos
+        </button>
+      </div>
+
       <div class="form-container">
         <form id="mastering-form">
           <div class="form-group">
@@ -276,6 +305,14 @@ function enregistrementPage() {
   return `
     <section class="section" style="padding-top: 120px;">
       <h2 class="section-title">Session d'Enregistrement</h2>
+      
+      <!-- AJOUTEZ CE BLOC -->
+      <div style="text-align: center; margin-bottom: 3rem;">
+        <button class="btn btn-outline" onclick="navigateTo('/portfolio/enregistrement')">
+          🖼️ Voir notre studio en photos
+        </button>
+      </div>
+
       <div class="form-container">
         <form id="recording-form">
           <div class="form-group">
@@ -775,19 +812,21 @@ async function updateBookingStatus(id, type, newStatus) {
 
 // Supprimer une réservation
 async function deleteBooking(id, type) {
-  if (!confirm('Êtes-vous sûr de vouloir supprimer cette réservation ?\n\nCette action est irréversible.')) {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer définitivement cette réservation ?\n\n⚠️ Cette action est irréversible.')) {
     return;
   }
   
   try {
-    // TODO: Ajouter une route DELETE dans le backend
-    alert('⚠️ Fonction de suppression à implémenter côté backend');
+    await api.deleteBooking(type, id);
+    alert('✅ Réservation supprimée !');
+    loadAdminData(); // Recharger les données
   } catch (error) {
+    console.error('Erreur suppression:', error);
     alert('❌ Erreur lors de la suppression');
   }
 }
 
-// REMPLACEZ aussi renderContactsList
+
 
 function renderContactsList(contacts) {
   if (!contacts || contacts.length === 0) {
@@ -913,8 +952,8 @@ function adminPortfolioPage() {
             <select name="service_type" required>
               <option value="mastering">Mastering</option>
               <option value="recording">Enregistrement</option>
-              <option value="studio">Studio</option>
-              <option value="equipment">Matériel</option>
+              <option value="studio">Réservation Studio</option>
+              <option value="equipment">Location de Matériel</option>
             </select>
           </div>
 
@@ -1263,5 +1302,294 @@ async function deletePortfolioItem(id, title) {
     loadAdminPortfolio();
   } catch (error) {
     alert('❌ Erreur lors de la suppression.');
+  }
+}
+
+// AJOUTEZ CES FONCTIONS dans main.js
+
+// Portfolio général (toutes les catégories)
+function portfolioPage() {
+  setTimeout(() => loadPortfolioItems('all'), 0);
+
+  return `
+    <section class="section" style="padding-top: 120px;">
+      <h2 class="section-title">Notre Portfolio</h2>
+      
+      <!-- Filtres -->
+      <div style="text-align: center; margin-bottom: 3rem;">
+        <button class="btn btn-outline filter-btn active" onclick="filterPortfolio('all')" data-filter="all" style="margin: 0.5rem;">Tout</button>
+        <button class="btn btn-outline filter-btn" onclick="filterPortfolio('equipment')" data-filter="equipment" style="margin: 0.5rem;">Matériel</button>
+        <button class="btn btn-outline filter-btn" onclick="filterPortfolio('studio')" data-filter="studio" style="margin: 0.5rem;">Studio</button>
+        <button class="btn btn-outline filter-btn" onclick="filterPortfolio('mastering')" data-filter="mastering" style="margin: 0.5rem;">Mastering</button>
+        <button class="btn btn-outline filter-btn" onclick="filterPortfolio('recording')" data-filter="recording" style="margin: 0.5rem;">Enregistrement</button>
+      </div>
+
+      <!-- Grille Portfolio -->
+      <div id="portfolio-grid" class="services-grid">
+        <p style="text-align: center; color: var(--gray);">Chargement...</p>
+      </div>
+    </section>
+  `;
+}
+
+// Portfolio Matériel
+function portfolioMaterielPage() {
+  setTimeout(() => loadPortfolioItems('equipment'), 0);
+  return renderPortfolioTemplate('equipment', '🎸 Portfolio Matériel', 'Découvrez notre matériel en action');
+}
+
+// Portfolio Studio
+function portfolioStudioPage() {
+  setTimeout(() => loadPortfolioItems('studio'), 0);
+  return renderPortfolioTemplate('studio', '🎙️ Portfolio Studio', 'Nos studios d\'enregistrement');
+}
+
+// Portfolio Mastering
+function portfolioMasteringPage() {
+  setTimeout(() => loadPortfolioItems('mastering'), 0);
+  return renderPortfolioTemplate('mastering', '🎚️ Portfolio Mastering', 'Nos réalisations de mastering');
+}
+
+// Portfolio Enregistrement
+function portfolioRecordingPage() {
+  setTimeout(() => loadPortfolioItems('recording'), 0);
+  return renderPortfolioTemplate('recording', '🎵 Portfolio Enregistrement', 'Nos sessions d\'enregistrement');
+}
+
+// Template de page portfolio
+function renderPortfolioTemplate(serviceType, title, subtitle) {
+  return `
+    <section class="section" style="padding-top: 120px;">
+      <h2 class="section-title">${title}</h2>
+      <p style="text-align: center; color: var(--gray); font-size: 1.2rem; margin-bottom: 3rem;">${subtitle}</p>
+      
+      <!-- Grille Portfolio -->
+      <div id="portfolio-grid" class="services-grid">
+        <p style="text-align: center; color: var(--gray);">Chargement...</p>
+      </div>
+
+      <!-- Bouton retour -->
+      <div style="text-align: center; margin-top: 3rem;">
+        <button class="btn btn-outline" onclick="navigateTo('/portfolio')">
+          ← Voir tout le portfolio
+        </button>
+      </div>
+    </section>
+  `;
+}
+
+// Charger les éléments du portfolio
+async function loadPortfolioItems(filter = 'all') {
+  try {
+    const items = await api.getPortfolio(filter === 'all' ? null : filter);
+    renderPublicPortfolio(items);
+  } catch (error) {
+    document.getElementById('portfolio-grid').innerHTML = 
+      '<p style="color: var(--primary);">Erreur de chargement</p>';
+  }
+}
+
+// Afficher le portfolio public
+function renderPublicPortfolio(items) {
+  const grid = document.getElementById('portfolio-grid');
+  
+  if (items.length === 0) {
+    grid.innerHTML = `
+      <div style="text-align: center; padding: 4rem 2rem;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">🎵</div>
+        <p style="color: var(--gray); font-size: 1.2rem;">Aucune réalisation pour le moment</p>
+        <p style="color: var(--gray); margin-top: 1rem;">Revenez bientôt pour découvrir nos projets !</p>
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = items.map(item => `
+    <div class="service-card portfolio-item" data-type="${item.service_type}" style="cursor: pointer; overflow: hidden;">
+      <!-- Image -->
+      ${item.image_url ? `
+        <div style="position: relative; overflow: hidden; border-radius: 10px; margin-bottom: 1rem; height: 250px;">
+          <img 
+            src="${item.image_url}" 
+            alt="${item.title}"
+            style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;"
+            onmouseover="this.style.transform='scale(1.1)'"
+            onmouseout="this.style.transform='scale(1)'"
+          />
+          <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem;">
+            ${getServiceIcon(item.service_type)} ${getServiceLabel(item.service_type)}
+          </div>
+        </div>
+      ` : `
+        <div style="width: 100%; height: 250px; background: linear-gradient(135deg, var(--dark-secondary), var(--dark)); border-radius: 10px; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; font-size: 3rem;">
+          ${getServiceIcon(item.service_type)}
+        </div>
+      `}
+
+      <!-- Titre -->
+      <h3 style="color: var(--primary); margin-bottom: 0.5rem; font-size: 1.3rem;">${item.title}</h3>
+
+      <!-- Description -->
+      <p style="color: var(--gray); margin-bottom: 1rem; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+        ${item.description || 'Découvrez ce projet...'}
+      </p>
+
+      <!-- Badges médias -->
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+        ${item.image_url ? '<span style="display: inline-block; padding: 0.25rem 0.75rem; background: var(--secondary); border-radius: 15px; font-size: 0.75rem;">📷 Image</span>' : ''}
+        ${item.audio_url ? '<span style="display: inline-block; padding: 0.25rem 0.75rem; background: var(--secondary); border-radius: 15px; font-size: 0.75rem;">🎵 Audio</span>' : ''}
+        ${item.video_url ? '<span style="display: inline-block; padding: 0.25rem 0.75rem; background: var(--secondary); border-radius: 15px; font-size: 0.75rem;">🎬 Vidéo</span>' : ''}
+      </div>
+
+      <!-- Bouton voir plus -->
+      <button 
+        class="btn btn-primary" 
+        style="width: 100%; margin-top: auto;"
+        onclick="openPortfolioModal(${item.id})"
+      >
+        👁️ Voir le projet
+      </button>
+    </div>
+  `).join('');
+}
+
+// Icônes par service
+function getServiceIcon(type) {
+  const icons = {
+    equipment: '🎸',
+    studio: '🎙️',
+    mastering: '🎚️',
+    recording: '🎵'
+  };
+  return icons[type] || '🎵';
+}
+
+// Labels par service
+function getServiceLabel(type) {
+  const labels = {
+    equipment: 'Matériel',
+    studio: 'Studio',
+    mastering: 'Mastering',
+    recording: 'Enregistrement'
+  };
+  return labels[type] || type;
+}
+
+// Filtrer le portfolio
+function filterPortfolio(type) {
+  loadPortfolioItems(type);
+  
+  // Mettre à jour les boutons actifs
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.getAttribute('data-filter') === type) {
+      btn.classList.add('active');
+    }
+  });
+}
+
+// Ouvrir le modal d'un projet
+async function openPortfolioModal(itemId) {
+  try {
+    const items = await api.getPortfolio();
+    const item = items.find(i => i.id === itemId);
+    
+    if (!item) {
+      alert('Projet non trouvé');
+      return;
+    }
+
+    const modalHTML = `
+      <div id="portfolio-modal" class="modal" style="display: flex;" onclick="closePortfolioModal(event)">
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
+          <span class="modal-close" onclick="closePortfolioModal()">&times;</span>
+          
+          <div style="padding: 2rem;">
+            <!-- En-tête -->
+            <div style="margin-bottom: 2rem;">
+              <span style="display: inline-block; padding: 0.5rem 1rem; background: var(--secondary); border-radius: 20px; font-size: 0.9rem; margin-bottom: 1rem;">
+                ${getServiceIcon(item.service_type)} ${getServiceLabel(item.service_type)}
+              </span>
+              <h2 style="color: var(--primary); font-size: 2rem; margin-bottom: 0.5rem;">${item.title}</h2>
+              <p style="color: var(--gray); line-height: 1.8; font-size: 1.1rem;">
+                ${item.description || ''}
+              </p>
+            </div>
+
+            <!-- Image -->
+            ${item.image_url ? `
+              <div style="margin-bottom: 2rem;">
+                <img 
+                  src="${item.image_url}" 
+                  alt="${item.title}"
+                  style="width: 100%; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);"
+                />
+              </div>
+            ` : ''}
+
+            <!-- Audio -->
+            ${item.audio_url ? `
+              <div style="margin-bottom: 2rem;">
+                <h3 style="color: var(--primary); margin-bottom: 1rem;">🎵 Extrait Audio</h3>
+                <audio controls style="width: 100%; border-radius: 10px;" preload="metadata">
+                  <source src="${item.audio_url}" type="audio/mpeg">
+                  <source src="${item.audio_url}" type="audio/wav">
+                  <source src="${item.audio_url}" type="audio/ogg">
+                  Votre navigateur ne supporte pas l'audio.
+                </audio>
+              </div>
+            ` : ''}
+
+            <!-- Vidéo -->
+            ${item.video_url ? `
+              <div style="margin-bottom: 2rem;">
+                <h3 style="color: var(--primary); margin-bottom: 1rem;">🎬 Vidéo</h3>
+                <video 
+                  controls 
+                  style="width: 100%; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);"
+                  preload="metadata"
+                >
+                  <source src="${item.video_url}" type="video/mp4">
+                  <source src="${item.video_url}" type="video/webm">
+                  <source src="${item.video_url}" type="video/ogg">
+                  Votre navigateur ne supporte pas la vidéo.
+                </video>
+              </div>
+            ` : ''}
+
+            <!-- Boutons d'action -->
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+              <button class="btn btn-primary" onclick="navigateTo('/contact')">
+                📧 Nous contacter pour un projet similaire
+              </button>
+              <button class="btn btn-outline" onclick="closePortfolioModal()">
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+  } catch (error) {
+    console.error('Erreur chargement projet:', error);
+    alert('Erreur lors du chargement du projet');
+  }
+}
+
+// Fermer le modal portfolio
+function closePortfolioModal(event) {
+  if (event && event.target.classList.contains('modal-content')) {
+    return; // Ne pas fermer si on clique sur le contenu
+  }
+  
+  const modal = document.getElementById('portfolio-modal');
+  if (modal) {
+    // Arrêter toutes les vidéos et audios
+    modal.querySelectorAll('video, audio').forEach(media => {
+      media.pause();
+    });
+    modal.remove();
   }
 }

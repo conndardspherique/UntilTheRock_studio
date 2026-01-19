@@ -1,6 +1,7 @@
 const express = require('express');
 const { db } = require('../database');
 const authMiddleware = require('../middleware/auth');
+const { logger } = require('../logger');
 
 const router = express.Router();
 
@@ -16,6 +17,7 @@ router.post('/equipment', (req, res) => {
       if (err) {
         return res.status(500).json({ error: 'Erreur lors de la réservation' });
       }
+      logger.booking('equipment', { id: this.lastID, name, email });
       res.json({ message: 'Réservation enregistrée', id: this.lastID });
     }
   );
@@ -33,6 +35,7 @@ router.post('/studio', (req, res) => {
       if (err) {
         return res.status(500).json({ error: 'Erreur lors de la réservation' });
       }
+      logger.booking('studio', { id: this.lastID, name, email });
       res.json({ message: 'Réservation enregistrée', id: this.lastID });
     }
   );
@@ -50,6 +53,7 @@ router.post('/mastering', (req, res) => {
       if (err) {
         return res.status(500).json({ error: 'Erreur lors de la demande' });
       }
+      logger.booking('mastering', { id: this.lastID, name, email });
       res.json({ message: 'Demande enregistrée', id: this.lastID });
     }
   );
@@ -67,6 +71,7 @@ router.post('/recording', (req, res) => {
       if (err) {
         return res.status(500).json({ error: 'Erreur lors de la réservation' });
       }
+      logger.booking('recording', { id: this.lastID, name, email });
       res.json({ message: 'Session enregistrée', id: this.lastID });
     }
   );
@@ -116,7 +121,38 @@ router.put('/:type/:id/status', authMiddleware, (req, res) => {
     if (err) {
       return res.status(500).json({ error: 'Erreur mise à jour' });
     }
+    logger.admin('Mise à jour statut réservation', req.admin.id, { type, id, status });
     res.json({ message: 'Statut mis à jour' });
+  });
+});
+
+// Admin: Supprimer une réservation
+router.delete('/:type/:id', authMiddleware, (req, res) => {
+  const { type, id } = req.params;
+
+  const tableMap = {
+    equipment: 'booking_equipment',
+    studio: 'booking_studio',
+    mastering: 'mastering_requests',
+    recording: 'recording_sessions'
+  };
+
+  const table = tableMap[type];
+  if (!table) {
+    return res.status(400).json({ error: 'Type invalide' });
+  }
+
+  db.run(`DELETE FROM ${table} WHERE id = ?`, [id], function(err) {
+    if (err) {
+      return res.status(500).json({ error: 'Erreur lors de la suppression' });
+    }
+    
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Réservation non trouvée' });
+    }
+    
+    logger.admin('Suppression réservation', req.admin.id, { type, id });
+    res.json({ message: 'Réservation supprimée' });
   });
 });
 

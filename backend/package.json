@@ -16,7 +16,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.12",
-    "sqlite3": "^5.1.6"
+    "sqlite3": "^5.0.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
