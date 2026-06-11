@@ -39,7 +39,7 @@ app.get('*', (req, res) => {
 db.initialize()
   .then(() => runMigrations())
   .then(() => {
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0",  () => {
       logger.success(`Serveur UntilTheRock démarré sur http://localhost:${PORT}`);
     });
   })
