@@ -596,3 +596,8 @@ input[type="file"] {
   }
 }
 
+.service-icon {
+    font-size: 3rem;
+    font-weight: 700;
+    color: rgba(255,255,255,.15);
+}

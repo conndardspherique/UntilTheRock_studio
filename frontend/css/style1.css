@@ -624,3 +624,9 @@ input[type="file"] {
     padding: 1rem 0;
   }
 }
+
+.service-icon {
+    font-size: 3rem;
+    font-weight: 700;
+    color: rgba(255,255,255,.15);
+}

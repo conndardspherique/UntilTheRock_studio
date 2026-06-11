@@ -9,10 +9,6 @@ package-lock.json
 *.sqlite
 *.sqlite3
 
-# Environnement
-.env
-.env.local
-.env.production
 
 # Logs
 logs/
