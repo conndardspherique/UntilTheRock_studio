@@ -95,6 +95,20 @@ const initialize = () => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`);
 
+      // Table calendrier
+      db.run(`CREATE TABLE IF NOT EXISTS calendar_appointments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        date DATE NOT NULL,
+        time_slot TEXT NOT NULL,
+        service_type TEXT NOT NULL,
+        message TEXT,
+        status TEXT DEFAULT 'pending',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`);
+
       // Créer un admin par défaut si n'existe pas
       const defaultPassword = bcrypt.hashSync('admin123', 10);
       db.run(`INSERT OR IGNORE INTO admin (username, password, email) 

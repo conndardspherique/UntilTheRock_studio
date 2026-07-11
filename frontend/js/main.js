@@ -18,7 +18,9 @@ const routes = {
   '/admin-portfolio': adminPortfolioPage,
   '/mentions-legales': mentionsLegalesPage,
   '/politique-confidentialite': politiqueConfidentialitePage,
-  '/cgv': cgvPage
+  '/cgv': cgvPage,
+  '/calendrier': calendarPage,
+  '/admin-calendrier': adminCalendarPage,
 };
 
 function navigateTo(path) {
@@ -415,6 +417,7 @@ function adminDashboardPage() {
         <div style="display: flex; gap: 1rem;">
           <button class="btn btn-primary" onclick="navigateTo('/admin-portfolio')">🖼️ Portfolio</button>
           <button class="btn btn-outline" onclick="handleLogout()">Déconnexion</button>
+          <button class="btn btn-primary" onclick="navigateTo('/admin-calendrier')">📅 Calendrier</button>
         </div>
       </div>
       <div id="admin-content"><p style="text-align: center; color: var(--gray);">Chargement...</p></div>
@@ -921,4 +924,661 @@ function closePortfolioModal(event) {
     modal.querySelectorAll('video, audio').forEach(m => m.pause());
     modal.remove();
   }
+}
+
+// ============================================================
+// CALENDRIER PUBLIC
+// ============================================================
+
+// État global du calendrier
+let _calState = {
+  year: new Date().getFullYear(),
+  month: new Date().getMonth() + 1, // 1-12
+  selectedDate: null,
+  appointments: [],   // RDV du mois (statuts seulement)
+  slots: null         // créneaux du jour sélectionné
+};
+
+function calendarPage() {
+  setTimeout(initCalendar, 0);
+  return `
+    <section class="section" style="padding-top: 120px;">
+      <h2 class="section-title">📅 Réserver un Créneau</h2>
+      <p style="text-align: center; color: var(--gray); font-size: 1.1rem; margin-bottom: 3rem;">
+        Choisissez une date disponible puis sélectionnez votre créneau horaire.
+      </p>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; max-width: 1100px; margin: 0 auto;">
+
+        <!-- CALENDRIER -->
+        <div>
+          <!-- Navigation mois -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <button onclick="calPrevMonth()" class="btn btn-outline" style="padding: 0.5rem 1.2rem;">‹</button>
+            <h3 id="cal-month-label" style="font-size: 1.4rem; font-weight: 700;"></h3>
+            <button onclick="calNextMonth()" class="btn btn-outline" style="padding: 0.5rem 1.2rem;">›</button>
+          </div>
+
+          <!-- Grille calendrier -->
+          <div id="calendar-grid" style="background: var(--dark-secondary); border-radius: 16px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.08);">
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 0.75rem;">
+              ${['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d =>
+                `<div style="text-align: center; font-size: 0.8rem; color: var(--gray); font-weight: 600; padding: 0.5rem 0;">${d}</div>`
+              ).join('')}
+            </div>
+            <div id="cal-days" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;"></div>
+          </div>
+
+          <!-- Légende -->
+          <div style="display: flex; gap: 1.5rem; margin-top: 1.5rem; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--gray);">
+              <div style="width: 14px; height: 14px; border-radius: 50%; background: var(--success);"></div> Disponible
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--gray);">
+              <div style="width: 14px; height: 14px; border-radius: 50%; background: #ff9800;"></div> Partiel
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--gray);">
+              <div style="width: 14px; height: 14px; border-radius: 50%; background: #f44336;"></div> Complet
+            </div>
+          </div>
+        </div>
+
+        <!-- PANNEAU DROITE : créneaux + formulaire -->
+        <div id="cal-right-panel">
+          <div style="background: var(--dark-secondary); border-radius: 16px; padding: 2rem; border: 1px solid rgba(255,255,255,0.08); text-align: center; color: var(--gray);">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">👆</div>
+            <p>Sélectionnez une date sur le calendrier pour voir les créneaux disponibles.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  `;
+}
+
+async function initCalendar() {
+  await calLoadMonth();
+}
+
+async function calLoadMonth() {
+  const label = document.getElementById('cal-month-label');
+  if (!label) return;
+
+  const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  label.textContent = `${months[_calState.month - 1]} ${_calState.year}`;
+
+  try {
+    _calState.appointments = await api.getMonthAppointments(_calState.year, _calState.month);
+  } catch { _calState.appointments = []; }
+
+  calRenderDays();
+}
+
+function calRenderDays() {
+  const container = document.getElementById('cal-days');
+  if (!container) return;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Premier jour du mois (0=dim, ajuster pour lundi=0)
+  const firstDay = new Date(_calState.year, _calState.month - 1, 1);
+  let startDow = firstDay.getDay(); // 0=dim
+  startDow = startDow === 0 ? 6 : startDow - 1; // convertir en lundi=0
+
+  const daysInMonth = new Date(_calState.year, _calState.month, 0).getDate();
+  const TOTAL_SLOTS = 12; // créneaux par jour
+
+  // Construire une map date -> nb de RDV pris
+  const takenMap = {};
+  _calState.appointments.forEach(a => {
+    takenMap[a.date] = (takenMap[a.date] || 0) + 1;
+  });
+
+  let html = '';
+
+  // Cases vides avant le 1er
+  for (let i = 0; i < startDow; i++) {
+    html += `<div></div>`;
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${_calState.year}-${String(_calState.month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayDate = new Date(_calState.year, _calState.month - 1, d);
+    const isPast  = dayDate < today;
+    const isToday = dayDate.getTime() === today.getTime();
+    const isSel   = _calState.selectedDate === dateStr;
+    const taken   = takenMap[dateStr] || 0;
+    const free    = TOTAL_SLOTS - taken;
+
+    let dotColor = 'var(--success)';
+    if (taken >= TOTAL_SLOTS) dotColor = '#f44336';
+    else if (taken >= TOTAL_SLOTS * 0.5) dotColor = '#ff9800';
+
+    const clickable = !isPast && taken < TOTAL_SLOTS;
+
+    html += `
+      <div onclick="${clickable ? `calSelectDate('${dateStr}')` : ''}"
+        style="
+          aspect-ratio: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          border-radius: 10px;
+          font-size: 0.95rem;
+          font-weight: ${isToday ? '700' : '400'};
+          cursor: ${clickable ? 'pointer' : 'default'};
+          background: ${isSel ? 'var(--primary)' : isToday ? 'rgba(255,255,255,0.08)' : 'transparent'};
+          color: ${isPast ? 'rgba(255,255,255,0.2)' : 'var(--light)'};
+          border: ${isToday && !isSel ? '2px solid rgba(255,255,255,0.3)' : '2px solid transparent'};
+          transition: all 0.2s ease;
+          position: relative;
+        "
+        onmouseover="${clickable && !isSel ? "this.style.background='rgba(255,255,255,0.1)'" : ''}"
+        onmouseout="${clickable && !isSel ? "this.style.background='transparent'" : ''}"
+      >
+        ${d}
+        ${!isPast ? `<div style="width: 6px; height: 6px; border-radius: 50%; background: ${dotColor}; margin-top: 2px; opacity: ${taken === 0 ? '0.4' : '1'};"></div>` : ''}
+      </div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+async function calSelectDate(dateStr) {
+  _calState.selectedDate = dateStr;
+  calRenderDays(); // re-render pour mettre à jour la sélection
+
+  const panel = document.getElementById('cal-right-panel');
+  panel.innerHTML = `<div style="background: var(--dark-secondary); border-radius: 16px; padding: 2rem; border: 1px solid rgba(255,255,255,0.08); text-align: center; color: var(--gray);"><p>Chargement des créneaux...</p></div>`;
+
+  try {
+    const data = await api.getAvailableSlots(dateStr);
+    _calState.slots = data;
+    calRenderSlotPanel(dateStr, data);
+  } catch {
+    panel.innerHTML = `<div style="background: var(--dark-secondary); border-radius: 16px; padding: 2rem;"><p style="color: var(--primary);">Erreur lors du chargement des créneaux.</p></div>`;
+  }
+}
+
+function calRenderSlotPanel(dateStr, data) {
+  const panel = document.getElementById('cal-right-panel');
+  const dateLabel = new Date(dateStr + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  panel.innerHTML = `
+    <div style="background: var(--dark-secondary); border-radius: 16px; padding: 2rem; border: 1px solid rgba(255,255,255,0.08);">
+      <h3 style="color: var(--primary); margin-bottom: 0.5rem; font-size: 1.2rem;">🗓️ ${dateLabel}</h3>
+      <p style="color: var(--gray); font-size: 0.9rem; margin-bottom: 1.5rem;">${data.available.length} créneau(x) disponible(s)</p>
+
+      ${data.available.length === 0 ? `
+        <div style="text-align: center; padding: 2rem; color: var(--gray);">
+          <div style="font-size: 2.5rem; margin-bottom: 1rem;">😔</div>
+          <p>Aucun créneau disponible ce jour-là.</p>
+          <p style="margin-top: 0.5rem; font-size: 0.9rem;">Essayez une autre date !</p>
+        </div>
+      ` : `
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1.5rem;" id="slot-grid">
+          ${data.available.map(slot => `
+            <button
+              onclick="calSelectSlot('${slot}', this)"
+              style="
+                padding: 0.75rem 0.5rem;
+                background: rgba(255,255,255,0.05);
+                border: 2px solid rgba(255,255,255,0.1);
+                border-radius: 10px;
+                color: var(--light);
+                cursor: pointer;
+                font-size: 0.9rem;
+                font-weight: 600;
+                transition: all 0.2s ease;
+              "
+              onmouseover="if(!this.classList.contains('selected-slot')){this.style.borderColor='var(--primary)';this.style.color='var(--primary)';}"
+              onmouseout="if(!this.classList.contains('selected-slot')){this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='var(--light)';}"
+            >
+              ${slot}
+            </button>
+          `).join('')}
+        </div>
+
+        <!-- Formulaire RDV (caché jusqu'à sélection d'un slot) -->
+        <div id="rdv-form-container" style="display: none;">
+          <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; margin-top: 0.5rem;">
+            <h4 style="color: var(--light); margin-bottom: 1rem; font-size: 1rem;">📝 Vos informations</h4>
+            <form id="rdv-form">
+              <input type="hidden" name="date" value="${dateStr}">
+              <input type="hidden" name="time_slot" id="rdv-slot-input">
+              <div class="form-group">
+                <label>Nom complet *</label>
+                <input type="text" name="name" required>
+              </div>
+              <div class="form-group">
+                <label>Email *</label>
+                <input type="email" name="email" required>
+              </div>
+              <div class="form-group">
+                <label>Téléphone *</label>
+                <input type="tel" name="phone" required>
+              </div>
+              <div class="form-group">
+                <label>Service souhaité *</label>
+                <select name="service_type" required>
+                  <option value="">Sélectionnez...</option>
+                  <option value="studio">🎙️ Réservation Studio</option>
+                  <option value="recording">🎵 Session d'Enregistrement</option>
+                  <option value="mastering">🎚️ Mastering</option>
+                  <option value="equipment">🎸 Location de Matériel</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Message (optionnel)</label>
+                <textarea name="message" rows="3" placeholder="Décrivez votre projet..."></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary" style="width: 100%;" id="rdv-submit-btn">
+                ✅ Confirmer le RDV
+              </button>
+            </form>
+          </div>
+        </div>
+      `}
+    </div>
+  `;
+
+  if (data.available.length > 0) {
+    document.getElementById('rdv-form')?.addEventListener('submit', handleRdvSubmit);
+  }
+}
+
+let _selectedSlot = null;
+
+function calSelectSlot(slot, btn) {
+  _selectedSlot = slot;
+
+  // Réinitialiser tous les boutons
+  document.querySelectorAll('#slot-grid button').forEach(b => {
+    b.classList.remove('selected-slot');
+    b.style.background = 'rgba(255,255,255,0.05)';
+    b.style.borderColor = 'rgba(255,255,255,0.1)';
+    b.style.color = 'var(--light)';
+  });
+
+  // Mettre en surbrillance le sélectionné
+  btn.classList.add('selected-slot');
+  btn.style.background = 'var(--primary)';
+  btn.style.borderColor = 'var(--primary)';
+  btn.style.color = 'white';
+
+  // Mettre à jour le champ caché et afficher le formulaire
+  const slotInput = document.getElementById('rdv-slot-input');
+  if (slotInput) slotInput.value = slot;
+
+  const formContainer = document.getElementById('rdv-form-container');
+  if (formContainer) {
+    formContainer.style.display = 'block';
+    formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+async function handleRdvSubmit(e) {
+  e.preventDefault();
+  const btn = document.getElementById('rdv-submit-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Envoi en cours...';
+
+  const data = Object.fromEntries(new FormData(e.target));
+
+  try {
+    await api.requestAppointment(data);
+    const panel = document.getElementById('cal-right-panel');
+    panel.innerHTML = `
+      <div style="background: var(--dark-secondary); border-radius: 16px; padding: 3rem 2rem; border: 1px solid rgba(255,255,255,0.08); text-align: center;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
+        <h3 style="color: var(--success); margin-bottom: 1rem;">Demande envoyée !</h3>
+        <p style="color: var(--gray); line-height: 1.6; margin-bottom: 1.5rem;">
+          Votre demande pour le <strong style="color: var(--light);">${new Date(data.date + 'T00:00:00').toLocaleDateString('fr-FR', {weekday:'long',day:'numeric',month:'long'})}</strong>
+          à <strong style="color: var(--light);">${data.time_slot}</strong> a bien été reçue.
+        </p>
+        <p style="color: var(--gray); font-size: 0.9rem; margin-bottom: 2rem;">Nous vous confirmerons le rendez-vous par email sous 24h.</p>
+        <button class="btn btn-outline" onclick="calSelectDate('${data.date}')">← Choisir un autre créneau</button>
+      </div>`;
+
+    // Recharger les données du mois
+    await calLoadMonth();
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = '✅ Confirmer le RDV';
+    const msg = err.message?.includes('409') ? 'Ce créneau vient d\'être pris ! Choisissez-en un autre.' : 'Erreur lors de l\'envoi. Réessayez.';
+    alert('❌ ' + msg);
+  }
+}
+
+function calPrevMonth() {
+  if (_calState.month === 1) { _calState.month = 12; _calState.year--; }
+  else _calState.month--;
+  _calState.selectedDate = null;
+  document.getElementById('cal-right-panel').innerHTML = `<div style="background: var(--dark-secondary); border-radius: 16px; padding: 2rem; text-align: center; color: var(--gray); border: 1px solid rgba(255,255,255,0.08);"><div style="font-size: 3rem; margin-bottom: 1rem;">👆</div><p>Sélectionnez une date.</p></div>`;
+  calLoadMonth();
+}
+
+function calNextMonth() {
+  if (_calState.month === 12) { _calState.month = 1; _calState.year++; }
+  else _calState.month++;
+  _calState.selectedDate = null;
+  document.getElementById('cal-right-panel').innerHTML = `<div style="background: var(--dark-secondary); border-radius: 16px; padding: 2rem; text-align: center; color: var(--gray); border: 1px solid rgba(255,255,255,0.08);"><div style="font-size: 3rem; margin-bottom: 1rem;">👆</div><p>Sélectionnez une date.</p></div>`;
+  calLoadMonth();
+}
+
+// ============================================================
+// CALENDRIER ADMIN
+// ============================================================
+
+let _adminCalState = {
+  year: new Date().getFullYear(),
+  month: new Date().getMonth() + 1,
+  allAppointments: []
+};
+
+function adminCalendarPage() {
+  if (!localStorage.getItem('admin_token')) { navigateTo('/admin-login'); return ''; }
+  setTimeout(initAdminCalendar, 0);
+
+  return `
+    <section class="section" style="padding-top: 120px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+        <h2 class="section-title" style="margin: 0;">📅 Gestion Calendrier</h2>
+        <div style="display: flex; gap: 1rem;">
+          <button class="btn btn-primary" onclick="openBlockModal()">🔒 Bloquer un créneau</button>
+          <button class="btn btn-outline" onclick="navigateTo('/admin-dashboard')">← Dashboard</button>
+        </div>
+      </div>
+
+      <!-- Vue Mois Admin -->
+      <div style="display: grid; grid-template-columns: 400px 1fr; gap: 2rem; align-items: start;">
+
+        <!-- Calendrier Admin -->
+        <div class="service-card" style="cursor: default;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <button onclick="adminCalPrevMonth()" class="btn btn-outline" style="padding: 0.4rem 1rem;">‹</button>
+            <h3 id="admin-cal-label" style="font-size: 1.2rem; font-weight: 700;"></h3>
+            <button onclick="adminCalNextMonth()" class="btn btn-outline" style="padding: 0.4rem 1rem;">›</button>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 0.5rem;">
+            ${['L','M','M','J','V','S','D'].map(d => `<div style="text-align:center;font-size:0.75rem;color:var(--gray);padding:0.3rem 0;font-weight:600;">${d}</div>`).join('')}
+          </div>
+          <div id="admin-cal-days" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;"></div>
+        </div>
+
+        <!-- Liste des RDV du jour sélectionné -->
+        <div id="admin-day-panel">
+          <div class="service-card" style="text-align: center; color: var(--gray); cursor: default;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">👈</div>
+            <p>Cliquez sur un jour pour voir les rendez-vous.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Liste complète (à venir / en attente) -->
+      <div class="service-card" style="margin-top: 2rem; cursor: default;">
+        <h3 style="color: var(--primary); margin-bottom: 1.5rem;">⏳ Demandes en attente de confirmation</h3>
+        <div id="admin-pending-list"><p style="color: var(--gray);">Chargement...</p></div>
+      </div>
+    </section>
+
+    <!-- Modal blocage -->
+    <div id="block-modal" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:2rem;">
+      <div style="background:var(--dark-secondary);border-radius:16px;padding:2.5rem;max-width:500px;width:100%;border:1px solid rgba(255,255,255,0.1);position:relative;">
+        <button onclick="closeBlockModal()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--gray);font-size:1.5rem;cursor:pointer;">×</button>
+        <h3 style="color:var(--primary);margin-bottom:1.5rem;">🔒 Bloquer un créneau</h3>
+        <form id="block-form">
+          <div class="form-group">
+            <label>Date *</label>
+            <input type="date" name="date" required>
+          </div>
+          <div class="form-group">
+            <label>Créneau horaire *</label>
+            <select name="time_slot" required>
+              ${['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00']
+                .map(s => `<option value="${s}">${s}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Raison</label>
+            <input type="text" name="reason" placeholder="Ex: Maintenance, Événement privé...">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;">🔒 Bloquer ce créneau</button>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
+async function initAdminCalendar() {
+  await adminCalLoad();
+}
+
+async function adminCalLoad() {
+  const label = document.getElementById('admin-cal-label');
+  if (!label) return;
+  const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  label.textContent = `${months[_adminCalState.month - 1]} ${_adminCalState.year}`;
+
+  try {
+    _adminCalState.allAppointments = await api.getAllAppointments();
+  } catch { _adminCalState.allAppointments = []; }
+
+  adminCalRenderDays();
+  adminRenderPendingList();
+
+  // Gestion du formulaire de blocage
+  document.getElementById('block-form')?.addEventListener('submit', handleBlockSlot);
+}
+
+function adminCalRenderDays() {
+  const container = document.getElementById('admin-cal-days');
+  if (!container) return;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const firstDay = new Date(_adminCalState.year, _adminCalState.month - 1, 1);
+  let startDow = firstDay.getDay();
+  startDow = startDow === 0 ? 6 : startDow - 1;
+  const daysInMonth = new Date(_adminCalState.year, _adminCalState.month, 0).getDate();
+
+  // Map date -> tableau de RDV
+  const dayMap = {};
+  _adminCalState.allAppointments.forEach(a => {
+    if (!a.date.startsWith(`${_adminCalState.year}-${String(_adminCalState.month).padStart(2,'0')}`)) return;
+    if (!dayMap[a.date]) dayMap[a.date] = [];
+    dayMap[a.date].push(a);
+  });
+
+  let html = '';
+  for (let i = 0; i < startDow; i++) html += '<div></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${_adminCalState.year}-${String(_adminCalState.month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayDate = new Date(_adminCalState.year, _adminCalState.month - 1, d);
+    const isPast  = dayDate < today;
+    const isToday = dayDate.getTime() === today.getTime();
+    const rdvs    = dayMap[dateStr] || [];
+    const pending = rdvs.filter(r => r.status === 'pending').length;
+    const confirmed = rdvs.filter(r => r.status === 'confirmed').length;
+
+    let indicator = '';
+    if (pending > 0)   indicator = `<div style="width:8px;height:8px;border-radius:50%;background:#ff9800;margin-top:2px;"></div>`;
+    else if (confirmed > 0) indicator = `<div style="width:8px;height:8px;border-radius:50%;background:var(--success);margin-top:2px;"></div>`;
+
+    html += `
+      <div onclick="adminSelectDay('${dateStr}')"
+        style="
+          aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+          border-radius:8px;font-size:0.9rem;cursor:pointer;
+          color:${isPast?'rgba(255,255,255,0.3)':'var(--light)'};
+          background:${isToday?'rgba(255,255,255,0.08)':'transparent'};
+          border:${isToday?'2px solid rgba(255,255,255,0.3)':'2px solid transparent'};
+          transition:all 0.2s ease;font-weight:${isToday?'700':'400'};
+        "
+        onmouseover="this.style.background='rgba(255,255,255,0.1)'"
+        onmouseout="this.style.background='${isToday?'rgba(255,255,255,0.08)':'transparent'}'"
+      >
+        ${d}
+        ${indicator}
+      </div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+async function adminSelectDay(dateStr) {
+  const panel = document.getElementById('admin-day-panel');
+  const rdvs = _adminCalState.allAppointments.filter(a => a.date === dateStr);
+  const dateLabel = new Date(dateStr + 'T00:00:00').toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
+
+  const SLOTS = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
+
+  const rdvMap = {};
+  rdvs.forEach(r => { rdvMap[r.time_slot] = r; });
+
+  panel.innerHTML = `
+    <div class="service-card" style="cursor: default;">
+      <h3 style="color: var(--primary); margin-bottom: 1.5rem; text-transform: capitalize;">📅 ${dateLabel}</h3>
+
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        ${SLOTS.map(slot => {
+          const rdv = rdvMap[slot];
+          if (!rdv) {
+            return `
+              <div style="display:flex;align-items:center;gap:1rem;padding:0.75rem 1rem;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
+                <span style="font-weight:700;color:var(--gray);min-width:55px;">${slot}</span>
+                <span style="color:var(--success);font-size:0.9rem;">✓ Libre</span>
+                <button onclick="quickBlock('${dateStr}','${slot}')" style="margin-left:auto;background:none;border:1px solid rgba(255,255,255,0.1);color:var(--gray);padding:0.3rem 0.75rem;border-radius:8px;cursor:pointer;font-size:0.8rem;" onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='var(--gray)'">🔒 Bloquer</button>
+              </div>`;
+          }
+
+          const isBlocked = rdv.service_type === 'blocked';
+          const colors = { pending:'#ff9800', confirmed:'var(--success)', cancelled:'#f44336' };
+          const labels = { pending:'⏳ En attente', confirmed:'✅ Confirmé', cancelled:'❌ Annulé' };
+
+          return `
+            <div style="padding:1rem;background:var(--dark);border-radius:10px;border-left:4px solid ${colors[rdv.status]||'#666'};">
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:${isBlocked?'0':'0.75rem'};">
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                  <span style="font-weight:700;color:var(--primary);min-width:55px;">${slot}</span>
+                  <span style="font-size:0.85rem;padding:0.25rem 0.75rem;background:${colors[rdv.status]||'#666'};border-radius:20px;font-weight:600;">${labels[rdv.status]||rdv.status}</span>
+                  ${isBlocked ? `<span style="color:var(--gray);font-size:0.9rem;">🔒 ${rdv.message||'Bloqué'}</span>` : ''}
+                </div>
+                <button onclick="adminDeleteAppointment(${rdv.id})" style="background:none;border:1px solid rgba(255,51,102,0.3);color:var(--primary);padding:0.3rem 0.75rem;border-radius:8px;cursor:pointer;font-size:0.8rem;">🗑️</button>
+              </div>
+              ${!isBlocked ? `
+                <p style="font-weight:600;margin-bottom:0.25rem;">${rdv.name}</p>
+                <p style="color:var(--gray);font-size:0.9rem;">📧 ${rdv.email} | 📞 ${rdv.phone}</p>
+                <p style="color:var(--gray);font-size:0.9rem;margin-top:0.25rem;">Service: ${getServiceLabel(rdv.service_type)}</p>
+                ${rdv.message ? `<p style="color:var(--gray);font-size:0.9rem;margin-top:0.25rem;font-style:italic;">"${rdv.message}"</p>` : ''}
+                <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap;">
+                  ${rdv.status === 'pending' ? `<button onclick="adminUpdateAppt(${rdv.id},'confirmed','${dateStr}')" class="btn btn-primary" style="padding:0.4rem 1rem;font-size:0.85rem;">✅ Confirmer</button>` : ''}
+                  ${rdv.status !== 'cancelled' ? `<button onclick="adminUpdateAppt(${rdv.id},'cancelled','${dateStr}')" class="btn btn-outline" style="padding:0.4rem 1rem;font-size:0.85rem;border-color:var(--primary);color:var(--primary);">❌ Annuler</button>` : ''}
+                  <button onclick="window.open('mailto:${rdv.email}?subject=Votre RDV UntilTheRock', '_blank')" class="btn btn-outline" style="padding:0.4rem 1rem;font-size:0.85rem;">📧 Email</button>
+                </div>
+              ` : ''}
+            </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function adminRenderPendingList() {
+  const container = document.getElementById('admin-pending-list');
+  if (!container) return;
+
+  const pending = _adminCalState.allAppointments
+    .filter(a => a.status === 'pending' && a.service_type !== 'blocked')
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  if (pending.length === 0) {
+    container.innerHTML = '<p style="color: var(--gray);">Aucune demande en attente. 🎉</p>';
+    return;
+  }
+
+  container.innerHTML = pending.map(rdv => {
+    const dateLabel = new Date(rdv.date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    return `
+      <div style="padding:1.25rem;background:var(--dark);border-radius:10px;margin-bottom:1rem;border-left:4px solid #ff9800;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+        <div>
+          <p style="font-weight:600;margin-bottom:0.25rem;">${rdv.name} <span style="color:var(--gray);font-weight:400;font-size:0.9rem;">— ${rdv.email}</span></p>
+          <p style="color:var(--primary);font-size:0.95rem;">📅 ${dateLabel} à ${rdv.time_slot}</p>
+          <p style="color:var(--gray);font-size:0.9rem;">${getServiceLabel(rdv.service_type)} | 📞 ${rdv.phone}</p>
+          ${rdv.message ? `<p style="color:var(--gray);font-size:0.85rem;font-style:italic;margin-top:0.25rem;">"${rdv.message}"</p>` : ''}
+        </div>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+          <button onclick="adminUpdateAppt(${rdv.id},'confirmed',null)" class="btn btn-primary" style="padding:0.5rem 1rem;font-size:0.9rem;">✅ Confirmer</button>
+          <button onclick="adminUpdateAppt(${rdv.id},'cancelled',null)" class="btn btn-outline" style="padding:0.5rem 1rem;font-size:0.9rem;border-color:var(--primary);color:var(--primary);">❌ Refuser</button>
+          <button onclick="window.open('mailto:${rdv.email}?subject=Votre RDV UntilTheRock', '_blank')" class="btn btn-outline" style="padding:0.5rem 1rem;font-size:0.9rem;">📧</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function adminUpdateAppt(id, status, dateStr) {
+  try {
+    await api.updateAppointmentStatus(id, status);
+    _adminCalState.allAppointments = await api.getAllAppointments();
+    adminCalRenderDays();
+    adminRenderPendingList();
+    if (dateStr) adminSelectDay(dateStr);
+    alert(`✅ Rendez-vous ${status === 'confirmed' ? 'confirmé' : 'annulé'} !`);
+  } catch { alert('❌ Erreur lors de la mise à jour'); }
+}
+
+async function adminDeleteAppointment(id) {
+  if (!confirm('Supprimer définitivement ce rendez-vous ?')) return;
+  try {
+    await api.deleteAppointment(id);
+    _adminCalState.allAppointments = await api.getAllAppointments();
+    adminCalRenderDays();
+    adminRenderPendingList();
+    alert('✅ Rendez-vous supprimé');
+  } catch { alert('❌ Erreur lors de la suppression'); }
+}
+
+function adminCalPrevMonth() {
+  if (_adminCalState.month === 1) { _adminCalState.month = 12; _adminCalState.year--; }
+  else _adminCalState.month--;
+  adminCalLoad();
+}
+
+function adminCalNextMonth() {
+  if (_adminCalState.month === 12) { _adminCalState.month = 1; _adminCalState.year++; }
+  else _adminCalState.month++;
+  adminCalLoad();
+}
+
+function openBlockModal() {
+  document.getElementById('block-modal').style.display = 'flex';
+}
+
+function closeBlockModal() {
+  document.getElementById('block-modal').style.display = 'none';
+}
+
+async function quickBlock(date, slot) {
+  if (!confirm(`Bloquer le créneau ${slot} du ${date} ?`)) return;
+  try {
+    await api.blockSlot({ date, time_slot: slot, reason: 'Indisponible' });
+    _adminCalState.allAppointments = await api.getAllAppointments();
+    adminCalRenderDays();
+    adminSelectDay(date);
+  } catch { alert('❌ Erreur lors du blocage'); }
+}
+
+async function handleBlockSlot(e) {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  try {
+    await api.blockSlot(data);
+    alert(`✅ Créneau ${data.time_slot} du ${data.date} bloqué !`);
+    closeBlockModal();
+    e.target.reset();
+    _adminCalState.allAppointments = await api.getAllAppointments();
+    adminCalRenderDays();
+    adminRenderPendingList();
+  } catch { alert('❌ Erreur lors du blocage'); }
 }

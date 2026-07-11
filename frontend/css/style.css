@@ -662,3 +662,11 @@ input[type="file"] {
     padding: 1rem 0;
   }
 }
+
+/* Responsive Calendrier */
+@media (max-width: 900px) {
+  #calendar-grid ~ div + div,
+  .cal-two-col {
+    grid-template-columns: 1fr !important;
+  }
+}

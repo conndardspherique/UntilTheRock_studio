@@ -562,3 +562,11 @@ audio {
     font-weight: 700;
     color: rgba(255,255,255,.15);
 }
+
+/* Responsive Calendrier */
+@media (max-width: 900px) {
+  #calendar-grid ~ div + div,
+  .cal-two-col {
+    grid-template-columns: 1fr !important;
+  }
+}

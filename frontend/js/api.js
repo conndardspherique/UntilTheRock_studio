@@ -126,6 +126,29 @@ async deleteBooking(type, id) {
     return this.request(`/portfolio/${id}`, {
       method: 'DELETE'
     });
-  }
+  },
+
+  // Calendrier
+  async getMonthAppointments(year, month) {
+    return this.request(`/calendar/month/${year}/${month}`);
+  },
+  async getAvailableSlots(date) {
+    return this.request(`/calendar/slots/${date}`);
+  },
+  async requestAppointment(data) {
+    return this.request('/calendar/request', { method: 'POST', body: JSON.stringify(data) });
+  },
+  async getAllAppointments() {
+    return this.request('/calendar/all');
+  },
+  async updateAppointmentStatus(id, status) {
+    return this.request(`/calendar/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
+  },
+  async deleteAppointment(id) {
+    return this.request(`/calendar/${id}`, { method: 'DELETE' });
+  },
+  async blockSlot(data) {
+    return this.request('/calendar/block', { method: 'POST', body: JSON.stringify(data) });
+  },
 };
 

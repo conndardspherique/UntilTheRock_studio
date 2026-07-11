@@ -628,5 +628,13 @@ input[type="file"] {
 .service-icon {
     font-size: 3rem;
     font-weight: 700;
-    color: rgba(255,255,255,.15);
+    color: rgba(228, 12, 12, 0.883);
+}
+
+/* Responsive Calendrier */
+@media (max-width: 900px) {
+  #calendar-grid ~ div + div,
+  .cal-two-col {
+    grid-template-columns: 1fr !important;
+  }
 }
