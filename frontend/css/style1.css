@@ -29,7 +29,7 @@ body {
   background: rgba(0, 0, 0, 0.95);
   backdrop-filter: blur(10px);
   z-index: 1000;
-  padding: 1rem 0;
+  padding: 0.5rem 0;
   border-bottom: 2px solid var(--primary);
   transition: all 0.3s ease;
 }
@@ -40,6 +40,9 @@ body {
 }
 
 .nav-container {
+  height: 80px;
+  display: flex;
+  align-items: center;
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 2rem;
@@ -55,6 +58,18 @@ body {
   cursor: pointer;
   transition: transform 0.3s ease;
   text-shadow: 0 0 20px var(--primary);
+}
+
+.logo img {
+    height: 105px;       /* ajuste entre 50 et 70px selon le rendu */
+    width: auto;
+    display: block;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+.logo img:hover {
+  transform: scale(1.05);
 }
 
 .logo:hover {
