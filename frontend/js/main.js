@@ -36,6 +36,7 @@ function navigateTo(path) {
 function renderPage(path) {
   const app = document.getElementById('app');
   const page = routes[path] || routes['/'];
+  app.classList.toggle('public-page', !path.startsWith('/admin'));
   app.innerHTML = page();
 }
 
@@ -111,13 +112,12 @@ function homePage() {
 function reservationMaterielPage() {
   setTimeout(() => {
     document.getElementById('equipment-form')?.addEventListener('submit', handleEquipmentBooking);
+    loadPortfolioItems('equipment');
   }, 0);
   return `
     <section class="section" style="padding-top: 120px;">
       <h2 class="section-title">Location de Matériel</h2>
-      <div style="text-align: center; margin-bottom: 3rem;">
-        <button class="btn btn-outline" onclick="navigateTo('/portfolio/materiel')">🖼️ Voir notre matériel en photos</button>
-      </div>
+      ${renderInlinePortfolio('Notre matériel en photos')}
       <div class="form-container">
         <form id="equipment-form">
           <div class="form-group"><label>Nom complet *</label><input type="text" name="name" required></div>
@@ -149,13 +149,12 @@ function reservationMaterielPage() {
 function reservationStudioPage() {
   setTimeout(() => {
     document.getElementById('studio-form')?.addEventListener('submit', handleStudioBooking);
+    loadPortfolioItems('studio');
   }, 0);
   return `
     <section class="section" style="padding-top: 120px;">
       <h2 class="section-title">Réservation Studio</h2>
-      <div style="text-align: center; margin-bottom: 3rem;">
-        <button class="btn btn-outline" onclick="navigateTo('/portfolio/studio')">🖼️ Voir notre studio en photos</button>
-      </div>
+      ${renderInlinePortfolio('Notre studio en photos')}
       <div class="form-container">
         <form id="studio-form">
           <div class="form-group"><label>Nom complet *</label><input type="text" name="name" required></div>
@@ -194,13 +193,12 @@ function reservationStudioPage() {
 function masteringPage() {
   setTimeout(() => {
     document.getElementById('mastering-form')?.addEventListener('submit', handleMasteringRequest);
+    loadPortfolioItems('mastering');
   }, 0);
   return `
     <section class="section" style="padding-top: 120px;">
       <h2 class="section-title">Service de Mastering</h2>
-      <div style="text-align: center; margin-bottom: 3rem;">
-        <button class="btn btn-outline" onclick="navigateTo('/portfolio/mastering')">🖼️ Voir nos réalisations mastering</button>
-      </div>
+      ${renderInlinePortfolio('Nos réalisations de mastering')}
       <div class="form-container">
         <form id="mastering-form">
           <div class="form-group"><label>Nom complet *</label><input type="text" name="name" required></div>
@@ -229,13 +227,12 @@ function masteringPage() {
 function enregistrementPage() {
   setTimeout(() => {
     document.getElementById('recording-form')?.addEventListener('submit', handleRecordingSession);
+    loadPortfolioItems('recording');
   }, 0);
   return `
     <section class="section" style="padding-top: 120px;">
       <h2 class="section-title">Session d'Enregistrement</h2>
-      <div style="text-align: center; margin-bottom: 3rem;">
-        <button class="btn btn-outline" onclick="navigateTo('/portfolio/enregistrement')">🖼️ Voir nos sessions en photos</button>
-      </div>
+      ${renderInlinePortfolio('Nos sessions en photos')}
       <div class="form-container">
         <form id="recording-form">
           <div class="form-group"><label>Nom complet *</label><input type="text" name="name" required></div>
@@ -289,45 +286,45 @@ async function handleEquipmentBooking(e) {
   e.preventDefault();
   try {
     await api.bookEquipment(Object.fromEntries(new FormData(e.target)));
-    alert('✅ Réservation enregistrée ! Nous vous contacterons sous 24h.');
+    alert('Réservation enregistrée. Nous vous contacterons sous 24 h.');
     e.target.reset();
-  } catch { alert('❌ Erreur lors de la réservation. Veuillez réessayer.'); }
+  } catch { alert('Erreur lors de la réservation. Veuillez réessayer.'); }
 }
 
 async function handleStudioBooking(e) {
   e.preventDefault();
   try {
     await api.bookStudio(Object.fromEntries(new FormData(e.target)));
-    alert('✅ Réservation enregistrée ! Nous vous contacterons sous 24h.');
+    alert('Réservation enregistrée. Nous vous contacterons sous 24 h.');
     e.target.reset();
-  } catch { alert('❌ Erreur lors de la réservation. Veuillez réessayer.'); }
+  } catch { alert('Erreur lors de la réservation. Veuillez réessayer.'); }
 }
 
 async function handleMasteringRequest(e) {
   e.preventDefault();
   try {
     await api.requestMastering(Object.fromEntries(new FormData(e.target)));
-    alert('✅ Demande enregistrée ! Nous vous enverrons un devis sous 48h.');
+    alert('Demande enregistrée. Nous vous enverrons un devis sous 48 h.');
     e.target.reset();
-  } catch { alert('❌ Erreur lors de l\'envoi. Veuillez réessayer.'); }
+  } catch { alert('Erreur lors de l\'envoi. Veuillez réessayer.'); }
 }
 
 async function handleRecordingSession(e) {
   e.preventDefault();
   try {
     await api.bookRecording(Object.fromEntries(new FormData(e.target)));
-    alert('✅ Session enregistrée ! Nous vous contacterons sous 24h.');
+    alert('Session enregistrée. Nous vous contacterons sous 24 h.');
     e.target.reset();
-  } catch { alert('❌ Erreur lors de la réservation. Veuillez réessayer.'); }
+  } catch { alert('Erreur lors de la réservation. Veuillez réessayer.'); }
 }
 
 async function handleContactForm(e) {
   e.preventDefault();
   try {
     await api.sendContact(Object.fromEntries(new FormData(e.target)));
-    alert('✅ Message envoyé ! Nous vous répondrons rapidement.');
+    alert('Message envoyé. Nous vous répondrons rapidement.');
     e.target.reset();
-  } catch { alert('❌ Erreur lors de l\'envoi. Veuillez réessayer.'); }
+  } catch { alert('Erreur lors de l\'envoi. Veuillez réessayer.'); }
 }
 
 // ============================================================
@@ -815,6 +812,14 @@ async function deletePortfolioItem(id, title) {
 // ============================================================
 // PORTFOLIO PUBLIC
 // ============================================================
+function renderInlinePortfolio(title) {
+  return `
+    <section class="inline-portfolio" aria-label="${title}">
+      <h3 class="inline-portfolio-title">${title}</h3>
+      <div id="portfolio-grid" class="services-grid"><p style="text-align:center;color:var(--gray);">Chargement...</p></div>
+    </section>`;
+}
+
 function portfolioPage() {
   setTimeout(() => loadPortfolioItems('all'), 0);
   return `
@@ -831,10 +836,10 @@ function portfolioPage() {
     </section>`;
 }
 
-function portfolioMaterielPage()    { setTimeout(() => loadPortfolioItems('equipment'), 0); return renderPortfolioTemplate('🎸 Portfolio Matériel', 'Découvrez notre matériel en action'); }
-function portfolioStudioPage()      { setTimeout(() => loadPortfolioItems('studio'), 0);    return renderPortfolioTemplate('🎙️ Portfolio Studio', 'Nos studios d\'enregistrement'); }
-function portfolioMasteringPage()   { setTimeout(() => loadPortfolioItems('mastering'), 0); return renderPortfolioTemplate('🎚️ Portfolio Mastering', 'Nos réalisations de mastering'); }
-function portfolioRecordingPage()   { setTimeout(() => loadPortfolioItems('recording'), 0); return renderPortfolioTemplate('🎵 Portfolio Enregistrement', 'Nos sessions d\'enregistrement'); }
+function portfolioMaterielPage()    { setTimeout(() => loadPortfolioItems('equipment'), 0); return renderPortfolioTemplate('Portfolio Matériel', 'Découvrez notre matériel en action'); }
+function portfolioStudioPage()      { setTimeout(() => loadPortfolioItems('studio'), 0);    return renderPortfolioTemplate('Portfolio Studio', 'Nos studios d\'enregistrement'); }
+function portfolioMasteringPage()   { setTimeout(() => loadPortfolioItems('mastering'), 0); return renderPortfolioTemplate('Portfolio Mastering', 'Nos réalisations de mastering'); }
+function portfolioRecordingPage()   { setTimeout(() => loadPortfolioItems('recording'), 0); return renderPortfolioTemplate('Portfolio Enregistrement', 'Nos sessions d\'enregistrement'); }
 
 function renderPortfolioTemplate(title, subtitle) {
   return `
@@ -859,26 +864,25 @@ async function loadPortfolioItems(filter = 'all') {
 function renderPublicPortfolio(items) {
   const grid = document.getElementById('portfolio-grid');
   if (items.length === 0) {
-    grid.innerHTML = `<div style="text-align:center;padding:4rem 2rem;"><div style="font-size:4rem;margin-bottom:1rem;">🎵</div><p style="color:var(--gray);font-size:1.2rem;">Aucune réalisation pour le moment</p></div>`;
+    grid.innerHTML = `<div style="text-align:center;padding:4rem 2rem;"><p style="color:var(--gray);font-size:1.2rem;">Aucune réalisation pour le moment</p></div>`;
     return;
   }
   grid.innerHTML = items.map(item => `
     <div class="service-card portfolio-item" style="cursor:pointer;overflow:hidden;">
       ${item.image_url
-        ? `<div style="position:relative;overflow:hidden;border-radius:10px;margin-bottom:1rem;height:250px;"><img src="${item.image_url}" alt="${item.title}" style="width:100%;height:100%;object-fit:cover;transition:transform 0.3s ease;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"><div style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.7);padding:0.5rem 1rem;border-radius:20px;font-size:0.85rem;">${getServiceIcon(item.service_type)} ${getServiceLabel(item.service_type)}</div></div>`
-        : `<div style="width:100%;height:250px;background:linear-gradient(135deg,var(--dark-secondary),var(--dark));border-radius:10px;margin-bottom:1rem;display:flex;align-items:center;justify-content:center;font-size:3rem;">${getServiceIcon(item.service_type)}</div>`}
+        ? `<div style="position:relative;overflow:hidden;border-radius:10px;margin-bottom:1rem;height:250px;"><img src="${item.image_url}" alt="${item.title}" style="width:100%;height:100%;object-fit:cover;transition:transform 0.3s ease;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"><div style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.7);padding:0.5rem 1rem;border-radius:20px;font-size:0.85rem;">${getServiceLabel(item.service_type)}</div></div>`
+        : `<div style="width:100%;height:250px;background:linear-gradient(135deg,var(--dark-secondary),var(--dark));border-radius:10px;margin-bottom:1rem;"></div>`}
       <h3 style="color:var(--primary);margin-bottom:0.5rem;font-size:1.3rem;">${item.title}</h3>
       <p style="color:var(--gray);margin-bottom:1rem;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">${item.description || 'Découvrez ce projet...'}</p>
       <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;">
-        ${item.image_url ? '<span style="display:inline-block;padding:0.25rem 0.75rem;background:var(--secondary);border-radius:15px;font-size:0.75rem;">📷 Image</span>' : ''}
-        ${item.audio_url ? '<span style="display:inline-block;padding:0.25rem 0.75rem;background:var(--secondary);border-radius:15px;font-size:0.75rem;">🎵 Audio</span>' : ''}
-        ${item.video_url ? '<span style="display:inline-block;padding:0.25rem 0.75rem;background:var(--secondary);border-radius:15px;font-size:0.75rem;">🎬 Vidéo</span>' : ''}
+        ${item.image_url ? '<span style="display:inline-block;padding:0.25rem 0.75rem;background:var(--secondary);border-radius:15px;font-size:0.75rem;">Image</span>' : ''}
+        ${item.audio_url ? '<span style="display:inline-block;padding:0.25rem 0.75rem;background:var(--secondary);border-radius:15px;font-size:0.75rem;">Audio</span>' : ''}
+        ${item.video_url ? '<span style="display:inline-block;padding:0.25rem 0.75rem;background:var(--secondary);border-radius:15px;font-size:0.75rem;">Vidéo</span>' : ''}
       </div>
-      <button class="btn btn-primary" style="width:100%;margin-top:auto;" onclick="openPortfolioModal(${item.id})">👁️ Voir le projet</button>
+      <button class="btn btn-primary" style="width:100%;margin-top:auto;" onclick="openPortfolioModal(${item.id})">Voir le projet</button>
     </div>`).join('');
 }
 
-function getServiceIcon(t) { return { equipment:'🎸', studio:'🎙️', mastering:'🎚️', recording:'🎵' }[t] || '🎵'; }
 function getServiceLabel(t) { return { equipment:'Matériel', studio:'Studio', mastering:'Mastering', recording:'Enregistrement' }[t] || t; }
 
 function filterPortfolio(type) {
@@ -900,15 +904,15 @@ async function openPortfolioModal(itemId) {
           <span class="modal-close" onclick="closePortfolioModal()">&times;</span>
           <div style="padding:2rem;">
             <div style="margin-bottom:2rem;">
-              <span style="display:inline-block;padding:0.5rem 1rem;background:var(--secondary);border-radius:20px;font-size:0.9rem;margin-bottom:1rem;">${getServiceIcon(item.service_type)} ${getServiceLabel(item.service_type)}</span>
+              <span style="display:inline-block;padding:0.5rem 1rem;background:var(--secondary);border-radius:20px;font-size:0.9rem;margin-bottom:1rem;">${getServiceLabel(item.service_type)}</span>
               <h2 style="color:var(--primary);font-size:2rem;margin-bottom:0.5rem;">${item.title}</h2>
               <p style="color:var(--gray);line-height:1.8;font-size:1.1rem;">${item.description || ''}</p>
             </div>
             ${item.image_url ? `<div style="margin-bottom:2rem;"><img src="${item.image_url}" alt="${item.title}" style="width:100%;border-radius:15px;box-shadow:0 10px 40px rgba(0,0,0,0.3);"></div>` : ''}
-            ${item.audio_url ? `<div style="margin-bottom:2rem;"><h3 style="color:var(--primary);margin-bottom:1rem;">🎵 Extrait Audio</h3><audio controls style="width:100%;border-radius:10px;" preload="metadata"><source src="${item.audio_url}" type="audio/mpeg"><source src="${item.audio_url}" type="audio/wav"><source src="${item.audio_url}" type="audio/ogg"></audio></div>` : ''}
-            ${item.video_url ? `<div style="margin-bottom:2rem;"><h3 style="color:var(--primary);margin-bottom:1rem;">🎬 Vidéo</h3><video controls style="width:100%;border-radius:15px;" preload="metadata"><source src="${item.video_url}" type="video/mp4"><source src="${item.video_url}" type="video/webm"></video></div>` : ''}
+            ${item.audio_url ? `<div style="margin-bottom:2rem;"><h3 style="color:var(--primary);margin-bottom:1rem;">Extrait audio</h3><audio controls style="width:100%;border-radius:10px;" preload="metadata"><source src="${item.audio_url}" type="audio/mpeg"><source src="${item.audio_url}" type="audio/wav"><source src="${item.audio_url}" type="audio/ogg"></audio></div>` : ''}
+            ${item.video_url ? `<div style="margin-bottom:2rem;"><h3 style="color:var(--primary);margin-bottom:1rem;">Vidéo</h3><video controls style="width:100%;border-radius:15px;" preload="metadata"><source src="${item.video_url}" type="video/mp4"><source src="${item.video_url}" type="video/webm"></video></div>` : ''}
             <div style="display:flex;gap:1rem;margin-top:2rem;">
-              <button class="btn btn-primary" onclick="navigateTo('/contact')">📧 Nous contacter pour un projet similaire</button>
+              <button class="btn btn-primary" onclick="navigateTo('/contact')">Nous contacter pour un projet similaire</button>
               <button class="btn btn-outline" onclick="closePortfolioModal()">Fermer</button>
             </div>
           </div>
@@ -943,7 +947,7 @@ function calendarPage() {
   setTimeout(initCalendar, 0);
   return `
     <section class="section" style="padding-top: 120px;">
-      <h2 class="section-title">📅 Réserver un Créneau</h2>
+      <h2 class="section-title">Réserver un créneau</h2>
       <p style="text-align: center; color: var(--gray); font-size: 1.1rem; margin-bottom: 3rem;">
         Choisissez une date disponible puis sélectionnez votre créneau horaire.
       </p>
@@ -986,7 +990,6 @@ function calendarPage() {
         <!-- PANNEAU DROITE : créneaux + formulaire -->
         <div id="cal-right-panel">
           <div style="background: var(--dark-secondary); border-radius: 16px; padding: 2rem; border: 1px solid rgba(255,255,255,0.08); text-align: center; color: var(--gray);">
-            <div style="font-size: 3rem; margin-bottom: 1rem;">👆</div>
             <p>Sélectionnez une date sur le calendrier pour voir les créneaux disponibles.</p>
           </div>
         </div>
@@ -1108,12 +1111,11 @@ function calRenderSlotPanel(dateStr, data) {
 
   panel.innerHTML = `
     <div style="background: var(--dark-secondary); border-radius: 16px; padding: 2rem; border: 1px solid rgba(255,255,255,0.08);">
-      <h3 style="color: var(--primary); margin-bottom: 0.5rem; font-size: 1.2rem;">🗓️ ${dateLabel}</h3>
+      <h3 style="color: var(--primary); margin-bottom: 0.5rem; font-size: 1.2rem;">${dateLabel}</h3>
       <p style="color: var(--gray); font-size: 0.9rem; margin-bottom: 1.5rem;">${data.available.length} créneau(x) disponible(s)</p>
 
       ${data.available.length === 0 ? `
         <div style="text-align: center; padding: 2rem; color: var(--gray);">
-          <div style="font-size: 2.5rem; margin-bottom: 1rem;">😔</div>
           <p>Aucun créneau disponible ce jour-là.</p>
           <p style="margin-top: 0.5rem; font-size: 0.9rem;">Essayez une autre date !</p>
         </div>
@@ -1144,7 +1146,7 @@ function calRenderSlotPanel(dateStr, data) {
         <!-- Formulaire RDV (caché jusqu'à sélection d'un slot) -->
         <div id="rdv-form-container" style="display: none;">
           <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; margin-top: 0.5rem;">
-            <h4 style="color: var(--light); margin-bottom: 1rem; font-size: 1rem;">📝 Vos informations</h4>
+            <h4 style="color: var(--light); margin-bottom: 1rem; font-size: 1rem;">Vos informations</h4>
             <form id="rdv-form">
               <input type="hidden" name="date" value="${dateStr}">
               <input type="hidden" name="time_slot" id="rdv-slot-input">
@@ -1164,10 +1166,10 @@ function calRenderSlotPanel(dateStr, data) {
                 <label>Service souhaité *</label>
                 <select name="service_type" required>
                   <option value="">Sélectionnez...</option>
-                  <option value="studio">🎙️ Réservation Studio</option>
-                  <option value="recording">🎵 Session d'Enregistrement</option>
-                  <option value="mastering">🎚️ Mastering</option>
-                  <option value="equipment">🎸 Location de Matériel</option>
+                  <option value="studio">Réservation Studio</option>
+                  <option value="recording">Session d'Enregistrement</option>
+                  <option value="mastering">Mastering</option>
+                  <option value="equipment">Location de Matériel</option>
                 </select>
               </div>
               <div class="form-group">
@@ -1175,7 +1177,7 @@ function calRenderSlotPanel(dateStr, data) {
                 <textarea name="message" rows="3" placeholder="Décrivez votre projet..."></textarea>
               </div>
               <button type="submit" class="btn btn-primary" style="width: 100%;" id="rdv-submit-btn">
-                ✅ Confirmer le RDV
+                Confirmer le RDV
               </button>
             </form>
           </div>
@@ -1223,7 +1225,7 @@ async function handleRdvSubmit(e) {
   e.preventDefault();
   const btn = document.getElementById('rdv-submit-btn');
   btn.disabled = true;
-  btn.textContent = '⏳ Envoi en cours...';
+  btn.textContent = 'Envoi en cours...';
 
   const data = Object.fromEntries(new FormData(e.target));
 
@@ -1232,7 +1234,6 @@ async function handleRdvSubmit(e) {
     const panel = document.getElementById('cal-right-panel');
     panel.innerHTML = `
       <div style="background: var(--dark-secondary); border-radius: 16px; padding: 3rem 2rem; border: 1px solid rgba(255,255,255,0.08); text-align: center;">
-        <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
         <h3 style="color: var(--success); margin-bottom: 1rem;">Demande envoyée !</h3>
         <p style="color: var(--gray); line-height: 1.6; margin-bottom: 1.5rem;">
           Votre demande pour le <strong style="color: var(--light);">${new Date(data.date + 'T00:00:00').toLocaleDateString('fr-FR', {weekday:'long',day:'numeric',month:'long'})}</strong>
@@ -1246,9 +1247,9 @@ async function handleRdvSubmit(e) {
     await calLoadMonth();
   } catch (err) {
     btn.disabled = false;
-    btn.textContent = '✅ Confirmer le RDV';
+    btn.textContent = 'Confirmer le RDV';
     const msg = err.message?.includes('409') ? 'Ce créneau vient d\'être pris ! Choisissez-en un autre.' : 'Erreur lors de l\'envoi. Réessayez.';
-    alert('❌ ' + msg);
+    alert(msg);
   }
 }
 
@@ -1256,7 +1257,7 @@ function calPrevMonth() {
   if (_calState.month === 1) { _calState.month = 12; _calState.year--; }
   else _calState.month--;
   _calState.selectedDate = null;
-  document.getElementById('cal-right-panel').innerHTML = `<div style="background: var(--dark-secondary); border-radius: 16px; padding: 2rem; text-align: center; color: var(--gray); border: 1px solid rgba(255,255,255,0.08);"><div style="font-size: 3rem; margin-bottom: 1rem;">👆</div><p>Sélectionnez une date.</p></div>`;
+  document.getElementById('cal-right-panel').innerHTML = `<div style="background: var(--dark-secondary); border-radius: 16px; padding: 2rem; text-align: center; color: var(--gray); border: 1px solid rgba(255,255,255,0.08);"><p>Sélectionnez une date.</p></div>`;
   calLoadMonth();
 }
 
@@ -1264,7 +1265,7 @@ function calNextMonth() {
   if (_calState.month === 12) { _calState.month = 1; _calState.year++; }
   else _calState.month++;
   _calState.selectedDate = null;
-  document.getElementById('cal-right-panel').innerHTML = `<div style="background: var(--dark-secondary); border-radius: 16px; padding: 2rem; text-align: center; color: var(--gray); border: 1px solid rgba(255,255,255,0.08);"><div style="font-size: 3rem; margin-bottom: 1rem;">👆</div><p>Sélectionnez une date.</p></div>`;
+  document.getElementById('cal-right-panel').innerHTML = `<div style="background: var(--dark-secondary); border-radius: 16px; padding: 2rem; text-align: center; color: var(--gray); border: 1px solid rgba(255,255,255,0.08);"><p>Sélectionnez une date.</p></div>`;
   calLoadMonth();
 }
 
